@@ -13,29 +13,37 @@
             }
             .border {
                 padding: 20px;
-                text-align: center;
             }
         </style>
 
+        
+        <paper-tabs selected="{{tab}}">
+            <paper-tab>Select Local Git Repo</paper-tab>
+            <paper-tab>Create New Repo</paper-tab>
+        </paper-tabs>
+        
         <div class="border">
-            <input style="display:none;" id="fileDialog" type="file" on-change="{{onSelect}}" webkitdirectory />
+            <div hidden?="{{tab != 0}}">
+                <input style="display:none;" id="fileDialog" type="file" on-change="{{onSelect}}" webkitdirectory />
+                <paper-button on-click="{{chooseFile}}" raised>Select Git Directory</paper-button>
 
-            <paper-button on-click="{{chooseFile}}" raised>Select Network Repo</paper-button>
+                <template bind if="{{selected}}">
+                    <div><b>{{rootDir}}</b></div>
 
 
-            <template bind if="{{selected}}">
-                <div><b>{{rootDir}}</b></div>
+                    <div hidden?="{{!valid}}" style="text-align:left; display:inline-block" >
+                        <div class="valid">Valid Directory</div>
+                        <div>Links: {{linkCount}}</div>
+                        <div>Nodes: {{nodeCount}}</div>
 
-
-                <div hidden?="{{!valid}}" style="text-align:left; display:inline-block" >
-                    <div class="valid">Valid Directory</div>
-                    <div>Links: {{linkCount}}</div>
-                    <div>Nodes: {{nodeCount}}</div>
-
-                    <paper-button on-click="{{useDir}}" raised>Use Directory</paper-button>
-                </div>
-                <div hidden?="{{valid}}" class="invalid">Invalid Directory</div>
-            </template>
+                        <paper-button on-click="{{useDir}}" raised>Use Directory</paper-button>
+                    </div>
+                    <div hidden?="{{valid}}" class="invalid">Invalid Directory</div>
+                </template>
+            </div>
+            <div hidden?="{{tab != 1}}">
+                <cwne-create-repo></cwne-create-repo>
+            </div>
         </div>
 
     </template>
@@ -45,6 +53,7 @@
 
 
             Polymer('page-select', {
+                tab: 0,
                 rootDir : '',
                 files : [],
 

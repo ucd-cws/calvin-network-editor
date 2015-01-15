@@ -1,10 +1,10 @@
 {
-  "name": "calvinnetworkeditor",
-  "version": "0.0.0",
+  "name": "calvin-network-editor",
+  "version": "0.0.1",
   "description": "",
   "keywords": [],
-  "homepage": "https://github.com/jrmerz/calvinnetworkeditor",
-  "bugs": "https://github.com/jrmerz/calvinnetworkeditor/issues",
+  "homepage": "https://github.com/ucd-cws/calvin-network-editor",
+  "bugs": "https://github.com/ucd-cws/calvin-network-editor/issues",
   "author": {
     "name": "Justin Merz",
     "email": "",
@@ -12,10 +12,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/jrmerz/calvinnetworkeditor.git"
+    "url": "git://github.com/ucd-cws/calvin-network-editor.git"
   },
   "dependencies": {
-    "nodewebkit": "^0.11.5"
+    "nodewebkit": "^0.11.5",
+    "request": "^2.51.0",
+    "md5": "^1.0.0"
   },
   "devDependencies": {
     "grunt": "~0.4.5",
