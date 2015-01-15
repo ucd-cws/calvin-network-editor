@@ -243,9 +243,20 @@ module.exports = function (grunt) {
                     stderr: true
                 },
                 command: 'node server.js'
+            },
+            run : {
+                options: {
+                    stdout: true,
+                    stderr: true
+                },
+                command: 'node_modules/nodewebkit/bin/nodewebkit app/'
             }
         }
   });
+
+  grunt.registerTask('run',[
+    'shell:run'
+  ]);
 
   grunt.registerTask('build',[
     'clean:dist',
