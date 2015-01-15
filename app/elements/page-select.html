@@ -1,0 +1,101 @@
+<polymer-element name="page-select">
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+            .valid {
+                color: green;
+            }
+            .invalid {
+                color: red;
+                display: inline-block;
+            }
+            .border {
+                padding: 20px;
+                text-align: center;
+            }
+        </style>
+
+        <div class="border">
+            <input style="display:none;" id="fileDialog" type="file" on-change="{{onSelect}}" webkitdirectory />
+
+            <paper-button on-click="{{chooseFile}}" raised>Select Network Repo</paper-button>
+
+
+            <template bind if="{{selected}}">
+                <div><b>{{rootDir}}</b></div>
+
+
+                <div hidden?="{{!valid}}" style="text-align:left; display:inline-block" >
+                    <div class="valid">Valid Directory</div>
+                    <div>Links: {{linkCount}}</div>
+                    <div>Nodes: {{nodeCount}}</div>
+
+                    <paper-button on-click="{{useDir}}" raised>Use Directory</paper-button>
+                </div>
+                <div hidden?="{{valid}}" class="invalid">Invalid Directory</div>
+            </template>
+        </div>
+
+    </template>
+    <script>
+        (function(){
+            var fs = require('fs');
+
+
+            Polymer('page-select', {
+                rootDir : '',
+                files : [],
+
+                selected : false,
+                valid : false,
+
+                nodeCount : 0,
+                linkCount : 0,
+
+                ready : function() {
+                    var dir = window.localStorage.getItem('rootDir');
+                    if( dir ) {
+                        this.rootDir = dir;
+                        this.selected = true;
+                        this.check();
+                    }
+                },
+
+                chooseFile : function() {
+                    this.$.fileDialog.click();
+                },
+                onSelect : function(e) {
+                    this.rootDir = this.$.fileDialog.value;
+                    window.localStorage.setItem('rootDir', this.rootDir);
+                    this.selected = true;
+                    this.check();
+                },
+                check : function() {
+                    this.files = fs.readdirSync(this.rootDir);
+
+                    var hasDataDir = false;
+                    var hasNetwork = false;
+                    for( var i = 0; i < this.files.length; i++ ) {
+                        if( this.files[i] == 'data' ) hasDataDir = true;
+                        else if ( this.files[i] == 'network.geojson' ) hasNetwork = true;
+                    }
+
+                    if( !hasNetwork || !hasDataDir ) {
+                        this.valid = false;
+                        return;
+                    }
+                    this.valid = true;
+
+                    this.nodeCount = fs.readdirSync(this.rootDir+'/data/nodes').length;
+                    this.linkCount = fs.readdirSync(this.rootDir+'/data/links').length;
+                },
+                useDir : function() {
+                    this.fire('dir-selected', this.rootDir);
+                }
+            });
+        })();
+        
+    </script>
+</polymer-element>

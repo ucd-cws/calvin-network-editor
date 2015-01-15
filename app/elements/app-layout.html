@@ -1,0 +1,52 @@
+<polymer-element name="app-layout">
+    <template>
+        <style>
+            :host {
+                display: block;
+                height: 100%;
+            }
+            .overflow {
+                overflow: auto;
+            }
+            .content {
+                background-color: white;
+                height: 100%;
+                position: relative;
+            }
+            .nav {
+                min-width: 200px;
+                background-color: #333;
+                color: white;
+                box-shadow: 0 0 5px black;
+                z-index: 10001;
+            }
+            .nav a {
+                color: white;
+            }
+            .nav li {
+                padding: 5px 10px;
+            }
+        </style>
+
+        <div layout horizontal style="height: 100%">
+            <div class="nav">
+                <ul style="list-style: none">
+                    <li><a href="{{hack}}#/">Select Repo</a></li>
+                    <li><a href="{{hack}}#map">Network</a></li>
+                </ul>
+            </div>
+            <div flex style="height: 100%">
+                <div class="content">
+                    <div fit class="overflow">
+                        <content></content>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+    <script>
+        Polymer('app-layout',{
+            hack : ''
+        })
+    </script>
+</polymer-element>

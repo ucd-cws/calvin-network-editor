@@ -1,0 +1,45 @@
+<polymer-element name="app-main">
+    <template>
+        <app-layout>
+            <page-select hidden?="{{page != 'select'}}" on-dir-selected="{{onDirSelect}}"></page-select>
+            <cwn-app hidden?="{{page != 'network'}}" islocal></cwn-app>
+            <app-edit-node id="edit" hidden?="{{page != 'edit'}}"></app-edit-node>
+        </app-layout>
+    </template>
+    <script>
+        Polymer('app-main', {
+            page : '',
+            networkLoader : null,
+
+            ready : function() {
+                this.networkLoader = document.querySelector('app-fs-network-loader');
+                window.location = '#';
+
+                $(window).on('hashchange', this.setPage.bind(this));
+                this.setPage();
+            },
+
+            onDirSelect : function(e) {
+                // set the root directory for the local network loader
+                this.networkLoader.rootDir = e.detail;
+
+                // poke the datastore to load;
+                this.shadowRoot.querySelector('cwn-app /deep/ cwn-datastore').init();
+
+                window.location = '#map';
+            },
+
+            setPage : function() {
+                var loc = window.location.hash.replace(/#/,'').replace(/\/.*/,'');
+                if( loc == '' ) {
+                    this.page = 'select';
+                } else if( loc == 'map' || loc == 'graph' || loc == 'info' ) {
+                    this.page = 'network';
+                } else if( loc == 'edit' ) {
+                    this.page = 'edit';
+                    this.$.edit.prmname = window.location.hash.split('/')[1];
+                }
+            }
+        });
+    </script>
+</polymer-element>
