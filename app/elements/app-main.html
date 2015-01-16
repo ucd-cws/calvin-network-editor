@@ -1,7 +1,11 @@
 <polymer-element name="app-main">
     <template>
-        <app-layout>
-            <page-select hidden?="{{page != 'select'}}" on-dir-selected="{{onDirSelect}}"></page-select>
+        <app-layout id="layout">
+            <page-select 
+                hidden?="{{page != 'select'}}" 
+                on-dir-selected="{{onDirSelect}}"
+                on-invalid-dir="{{onInvalidDir}}">
+            </page-select>
             <cwn-app hidden?="{{page != 'network'}}" islocal></cwn-app>
             <app-edit-node id="edit" hidden?="{{page != 'edit'}}"></app-edit-node>
         </app-layout>
@@ -27,6 +31,11 @@
                 this.shadowRoot.querySelector('cwn-app /deep/ cwn-datastore').init();
 
                 window.location = '#map';
+                this.$.layout.showNetwork = true;
+            },
+
+            onInvalidDir : function() {
+                this.$.layout.showNetwork = false;
             },
 
             setPage : function() {

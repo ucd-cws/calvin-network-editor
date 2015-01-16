@@ -18,7 +18,8 @@
 
         
         <paper-tabs selected="{{tab}}">
-            <paper-tab>Select Local Git Repo</paper-tab>
+            <paper-tab>Select Local Repo</paper-tab>
+            <paper-tab>Clone Existing Repo</paper-tab>
             <paper-tab>Create New Repo</paper-tab>
         </paper-tabs>
         
@@ -42,7 +43,10 @@
                 </template>
             </div>
             <div hidden?="{{tab != 1}}">
-                <cwne-create-repo></cwne-create-repo>
+                Not implemented yet :(
+            </div>
+            <div hidden?="{{tab != 2}}">
+                <cwne-create-repo on-repo-created="{{onRepoCreated}}"></cwne-create-repo>
             </div>
         </div>
 
@@ -93,6 +97,7 @@
 
                     if( !hasNetwork || !hasDataDir ) {
                         this.valid = false;
+                        this.fire('invalid-dir');
                         return;
                     }
                     this.valid = true;
@@ -102,6 +107,12 @@
                 },
                 useDir : function() {
                     this.fire('dir-selected', this.rootDir);
+                },
+
+                onRepoCreated : function(e) {
+                    this.tab = 0;
+                    this.rootDir = e.detail;
+                    this.check();
                 }
             });
         })();

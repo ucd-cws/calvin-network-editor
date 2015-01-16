@@ -4,6 +4,8 @@
   "version": "0.0.1",
   "main": "index.html",
   "window": {
+    "icon": "calvin_icon.png",
+    "toolbar": true,
     "width": 900,
     "height": 700
   }

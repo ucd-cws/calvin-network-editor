@@ -17,7 +17,8 @@
   "dependencies": {
     "nodewebkit": "^0.11.5",
     "request": "^2.51.0",
-    "md5": "^1.0.0"
+    "md5": "^1.0.0",
+    "nodegit": "^0.2.4"
   },
   "devDependencies": {
     "grunt": "~0.4.5",
@@ -38,6 +39,13 @@
     "grunt-contrib-uglify": "^0.7.0"
   },
   "engines": {
-    "node": ">=0.8.0"
+    "node": ">=0.8.0",
+    "node-webkit": "0.11.5"
+  },
+  "window": {
+    "icon": "app/calvin_icon.png",
+    "toolbar": false,
+    "width": 900,
+    "height": 700
   }
 }

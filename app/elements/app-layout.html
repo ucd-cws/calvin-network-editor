@@ -32,7 +32,7 @@
             <div class="nav">
                 <ul style="list-style: none">
                     <li><a href="{{hack}}#/">Select Repo</a></li>
-                    <li><a href="{{hack}}#map">Network</a></li>
+                    <li hidden?="{{!showNetwork}}"><a href="{{hack}}#map">Network</a></li>
                 </ul>
             </div>
             <div flex style="height: 100%">
@@ -46,7 +46,8 @@
     </template>
     <script>
         Polymer('app-layout',{
-            hack : ''
+            hack : '',
+            showNetwork : false,
         })
     </script>
 </polymer-element>
