@@ -1,12 +1,59 @@
 <polymer-element name="cwne-edit-node">
     <template>
         <h2>Editing {{prmname}}</h2>
-        <div>Edit nodes here... blah blah blah</div>
+        <div>
+            <juicy-jsoneditor json="{{json}}" modes="['text', 'tree']" style="height: 500px"></juicy-jsoneditor>
+        </div>
+        <div><a class="btn btn-default" on-click="{{save}}">Save</a></div></div>
         <div><a href="#info/{{prmname}}">back</a></div>
     </template>
     <script>
-        Polymer('cwne-edit-node', {
-            prmname : '',
-        })
+        (function(){
+
+            var fs = requireNode('fs');
+
+            Polymer('cwne-edit-node', {
+                prmname : '',
+                json : {},
+                org : {},
+                ds : null,
+                loaded : false,
+
+                observe : {
+                    prmname : 'setNode'
+                },
+
+                ready : function() {
+                    Polymer.whenPolymerReady(function(){
+                        this.ds = document.querySelector('html /deep/ cwn-datastore');
+                        this.ds.addEventListener('loaded', this.setNode.bind(this));
+                    }.bind(this));
+                },
+
+                save : function() {
+                    if( fs.existsSync(this.org.properties.file) ) {
+                        fs.unlinkSync(this.org.properties.file);
+                    }
+
+                    fs.writeFileSync(this.org.properties.file, JSON.stringify(this.json, '', '  '));
+                    this.ds.lookupMap[this.prmname] = this.json;
+
+                    // TODO: need to update map
+                    alert('Node Saved!');
+                },
+
+                setNode : function() {
+                    if( this.prmname == '' ) return;
+                    if( !this.ds ) return;
+                    if( !this.ds.lookupMap[this.prmname] ) return;
+
+                    this.org = this.ds.lookupMap[this.prmname];
+                    this.json = $.extend(true, {}, this.org);
+                    delete this.json.properties._render;
+                    delete this.json.properties.file;
+                }
+            });
+
+        })();
     </script>
 </polymer-element>

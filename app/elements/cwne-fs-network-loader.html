@@ -2,7 +2,7 @@
     <template></template>
     <script>
         (function(){
-            var fs = require('fs');
+            var fs = requireNode('fs');
 
             Polymer('cwne-fs-network-loader', {
                 rootDir : '',
@@ -21,7 +21,9 @@
                         if( !fs.existsSync(jsonFile) ) continue;
 
                         var str = fs.readFileSync(jsonFile);
-                        data.nodes.push(JSON.parse(str));
+                        var node = JSON.parse(str);
+                        node.properties.file = jsonFile
+                        data.nodes.push(node);
                     }
 
                     var links = fs.readdirSync(this.rootDir+'/data/links');
@@ -30,7 +32,9 @@
                         if( !fs.existsSync(jsonFile) ) continue;
 
                         var str = fs.readFileSync(jsonFile);
-                        data.links.push(JSON.parse(str));
+                        var link = JSON.parse(str);
+                        node.properties.file = jsonFile;
+                        data.links.push(link);
                     }
 
                     callback(data);

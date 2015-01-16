@@ -71,10 +71,10 @@
     </template>
     <script>
         (function(){
-            var request = require('request');
-            var gui = require('nw.gui');
-            var git = require('nodegit');
-            var fs = require('fs');
+            var request = requireNode('request');
+            var gui = requireNode('nw.gui');
+            var git = requireNode('nodegit');
+            var fs = requireNode('fs');
 
             Polymer('cwne-create-repo', {
                 attempted : false,

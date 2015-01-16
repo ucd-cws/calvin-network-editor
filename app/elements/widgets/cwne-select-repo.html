@@ -60,6 +60,16 @@
                             <td class="info" id="statusTxt"></td>
                         </tr>
                     </table>
+
+                    <div class="well">
+                        <div>Need to help working with git?  Here are some resources:</div>
+                        <ul>
+                            <li><a url="http://git-scm.com/docs/gittutorial" on-click="{{goTo}}">Tutorial</a></li>
+                            <li><a url="http://git-scm.com/downloads" on-click="{{goTo}}">Downloads</a></li>
+                            <li>Don't like the command line? <a url="http://git-scm.com/downloads/guis" on-click="{{goTo}}">GUI'S!</a></li>
+                            <li>Help from <a on-click="{{goTo}}" url="https://help.github.com/articles/good-resources-for-learning-git-and-github/"><cwn-icon icon="fa-github"></cwn-icon> GitHub</a></li>
+                        </uL>
+                    </div>
                 </div>
                 <div hidden?="{{valid}}" class="invalid">
                     <div class="invalid">Invalid Directory: {{errMsg}}</div>
@@ -70,9 +80,10 @@
     </template>
     <script>
         (function(){
-            var fs = require('fs');
-            var git = require('nodegit');
-            var exec = require('child_process').exec;
+            var fs = requireNode('fs');
+            var git = requireNode('nodegit');
+            var gui = requireNode('nw.gui');
+            var exec = requireNode('child_process').exec;
 
             Polymer('cwne-select-repo', {
                 rootDir : '',
@@ -192,6 +203,11 @@
 
                 useDir : function() {
                     this.fire('dir-selected', this.rootDir);
+                },
+
+                goTo : function(e) {
+                    var url = e.currentTarget.getAttribute('url');
+                    gui.Shell.openExternal(url);
                 }
             });
         })();

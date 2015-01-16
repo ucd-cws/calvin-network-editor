@@ -10,6 +10,7 @@
 
   <!-- build:css styles/app.css -->
   <link rel="stylesheet" href="../../ca-water-network/app/components/font-awesome/css/font-awesome.min.css">
+  <link rel="stylesheet" type="text/css" href="../../ca-water-network/app/components/jsoneditor/jsoneditor.min.css">
   <link rel="stylesheet" href="style.css" >
   <!-- endbuild -->
 
@@ -17,6 +18,12 @@
   <script src="../../ca-water-network/app/components/webcomponentsjs/webcomponents.js"></script>
   <script src="../../ca-water-network/app/components/jquery/dist/jquery.js"></script> 
   <!-- endbuild -->
+
+  <!-- dealing with 'require' ns conflict -->
+  <script type="text/javascript">
+      window.requireNode = window.require;
+      window.require = undefined; 
+  </script>
 
   <script type="text/javascript" src="https://www.google.com/jsapi"></script>
 
