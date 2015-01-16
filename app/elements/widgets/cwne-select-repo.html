@@ -1,0 +1,199 @@
+<polymer-element name="cwne-select-repo">
+    <template>
+        <style>
+            .selected {
+                padding: 20px;
+            }
+            .valid {
+                white-space: nowrap;
+                color: green;
+            }
+            .invalid {
+                color: red;
+                display: inline-block;
+            }
+            .tlabel {
+                font-weight: bold;
+                color: #888;
+            }
+            #statusTxt {
+                overflow: auto;
+                font-size: 12px;
+            }
+        </style>
+        <input style="display:none;" id="fileDialog" type="file" on-change="{{onSelect}}" webkitdirectory />
+        <a class="btn btn-default" on-click="{{chooseFile}}">Select Git Directory</a>
+
+        <template bind if="{{selected}}">
+            <div class="selected">
+                <div style="padding: 5px 0">
+                    <div layout horizontal>
+                        <div><b>{{rootDir}}</b></div>
+                        <div flex style="text-align:right">
+                            <a class="btn btn-default" on-click="{{getRepoName}}"><cwn-icon icon="{{refreshing ? 'fa-spinner fa-spin' : 'fa-refresh'}}"></cwn-icon></a>
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <div hidden?="{{!valid}}" style="text-align:left" >
+                    <table class="table">
+                        <tr>
+                            <td class="valid">Valid</td>
+                            <td><a class="btn btn-default" on-click="{{useDir}}" raised>Use Directory</a></td>
+                        </tr>
+                        <tr>
+                            <td class="tlabel">Links</td>
+                            <td class="info">{{linkCount}}</td>
+                        </tr>
+                        <tr>
+                            <td class="tlabel">Nodes</td>
+                            <td class="info">{{nodeCount}}</td>
+                        </tr>
+                        <tr>
+                            <td class="tlabel">Current Branch</td>
+                            <td class="info">{{branch}}</td>
+                        </tr>
+                        <tr>
+                            <td class="tlabel">Status</td>
+                            <td class="info" id="statusTxt"></td>
+                        </tr>
+                    </table>
+                </div>
+                <div hidden?="{{valid}}" class="invalid">
+                    <div class="invalid">Invalid Directory: {{errMsg}}</div>
+                    <div><a class="btn btn-default" on-click="{{check}}"><cwn-icon icon="{{refreshing ? 'fa-spinner fa-spin' : 'fa-refresh'}}"></cwn-icon></a></div>
+                </div>
+            </div>
+        </template>
+    </template>
+    <script>
+        (function(){
+            var fs = require('fs');
+            var git = require('nodegit');
+            var exec = require('child_process').exec;
+
+            Polymer('cwne-select-repo', {
+                rootDir : '',
+                files : [],
+
+                errMsg : '',
+                branch : '',
+
+                selected : false,
+                valid : false,
+
+                nodeCount : 0,
+                linkCount : 0,
+
+                gitRepo : null,
+                refreshing : false,
+
+                ready : function() {
+                    Polymer.whenPolymerReady(function(){
+                        var dir = window.localStorage.getItem('rootDir');
+                        if( dir ) {
+                            this.rootDir = dir;
+                            this.selected = true;
+                            this.check();
+                        }
+                    }.bind(this));
+                },
+
+                chooseFile : function() {
+                    this.$.fileDialog.click();
+                },
+
+                onSelect : function(e) {
+                    this.select(this.$.fileDialog.value);
+                },
+
+                select : function(dir) {
+                    this.rootDir = dir;
+                    window.localStorage.setItem('rootDir', this.rootDir);
+                    this.selected = true;
+                    this.check();
+                },
+
+                check : function() {
+                    this.refreshing = true;
+                    this.files = fs.readdirSync(this.rootDir);
+
+                    var hasDataDir = false;
+                    var hasNetwork = false;
+                    for( var i = 0; i < this.files.length; i++ ) {
+                        if( this.files[i] == 'data' ) hasDataDir = true;
+                        else if ( this.files[i] == 'network.geojson' ) hasNetwork = true;
+                    }
+
+                    if( !hasNetwork || !hasDataDir ) {
+                        this.valid = false;
+                        this.refreshing = false;
+                        this.errMsg = 'Invalid directory structure';
+                        this.fire('invalid-dir');
+                        return;
+                    }
+
+                    git.Repository.initExt(this.rootDir, git.RepositoryInitOptions)
+                        .then(function(repo){
+                            this.repo = repo;
+                            this.valid = true;
+                            this.getInfo();
+                        }.bind(this), function(err) {
+                            if( err && err.message ) this.errMsg = error.message;
+                            else this.errMsg = 'Invalid git repo';
+
+                            this.valid = false;
+                            this.refreshing = false;
+                            this.fire('invalid-dir');
+                        }.bind(this));
+                },
+
+                getRepoName : function() {
+                    this.repo.getCurrentBranch()
+                        .then(function(branch, info){
+                            this.branch = branch.name().replace(/.*\//,'');
+                            this.getAllInfo();
+                        }.bind(this), function(err){
+                            alert('Error requesting branch info');
+                            this.refreshing = false;
+                        }.bind(this));
+                },
+
+                getAllInfo : function() {
+                    // TODO: does this work in windows?
+                    exec('cd '+this.rootDir+' && git status ',  function (error, stdout, stderr) {
+                        var ele = this.shadowRoot.querySelector('#statusTxt');
+
+                        //if( error ) {
+                        //    ele.innerHTML = (typeof error == 'object') ? JSON.stringify(error) : error;
+                        //} else 
+                        if ( stderr ) {
+                            ele.innerHTML = stderr.replace(/ /g,'&nbsp;').replace(/\n|\r/g,'<br />');
+                        } else if ( stdout ) {
+                            ele.innerHTML = stdout.replace(/ /g,'&nbsp;').replace(/\n|\r/g,'<br />');
+                        }
+                        this.refreshing = false;
+                    }.bind(this));
+                },
+
+                refresh : function() {
+                    this.refreshing = true;
+                    this.getInfo();
+                    this.fire('refresh');
+                },
+
+                getInfo : function() {
+                    this.nodeCount = fs.readdirSync(this.rootDir+'/data/nodes').length;
+                    this.linkCount = fs.readdirSync(this.rootDir+'/data/links').length;
+                    this.getRepoName();
+                },
+
+                useDir : function() {
+                    this.fire('dir-selected', this.rootDir);
+                }
+            });
+        })();
+    </script>
+</polymer-element>

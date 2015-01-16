@@ -4,10 +4,21 @@
             .select-btn {
                 margin: 5px;
             }
+            .panel {
+                padding: 10px;
+            }
+            .page-header {
+                margin-top: 10px !important;
+                margin-bottom: 5px !important;
+            }
+            .help {
+                padding: 20px;
+                color: #888;
+            }
         </style>
 
-        <h3 style="text-align:center">Create New Git Repository</h3>
-        <div class="help">Here you can fork an new git repository to work on.  You can also go <a on-click="{{goTo}}" url="https://github.com/ucd-cws/calvin-network-data">here</a> and fork the repository.</div>
+        <h3 style="text-align:center" class="page-header">Create New Git Repository</h3>
+        <div class="help">Here you can fork an new <cwn-icon icon="fa-github"></cwn-icon> GitHub repository and clone it to your local machine.  You can also go <a on-click="{{goTo}}" url="https://github.com/ucd-cws/calvin-network-data">here</a> and fork the repository.  A <a on-click="{{goTo}}" url="https://github.com">GitHub Account</a> is required.</div>
 
 
         <div class="form-horizontal">
@@ -25,11 +36,11 @@
           </div>
         </div>
 
-        <a class="btn btn-default" on-click="{{access}}">Access</a>
+        <a class="btn btn-default" on-click="{{access}}" hidden?="{{loading}}">Access <cwn-icon icon="fa-github"></cwn-icon> GitHub</a>
+        <a class="btn btn-default disabled" hidden?="{{!loading}}"><cwn-icon icon="fa-spinner fa-spin"></cwn-icon> Accessing GitHub... </a>
 
-        <div hidden?="{{!attempted}}">
-            <h4>Select organization to create repo in.</h4>
-            <div hidden?="{{!loading}}">Loading...</div>
+        <div hidden?="{{!attempted || loading}}" class="panel" style="margin-top: 20px">
+            <h4 class="page-header">Select organization to fork git respository in.</h4>
             <template repeat="{{org in orgs}}">
                 <a class="btn btn-default select-btn" on-click="{{selectOrg}}" org="{{org.name}}">
                     <div layout horizontal>
@@ -43,15 +54,17 @@
             </template> 
         </div>
 
-        <div hidden?="{{!selectedOrg}}">
-            <h4>Choose directory to clone to respositry into</h4>
+        <div hidden?="{{!selectedOrg}}" class="panel">
+            <h4 class='page-header'>Choose local directory to clone remote respositry into.</h4>
             <input style="display:none;" id="fileDialog" type="file" on-change="{{onSelect}}" webkitdirectory />
-            <a class="btn btn-default" on-click="{{chooseFile}}" >Pick</a>
+            <a class="btn btn-default" on-click="{{chooseFile}}" ><cwn-icon icon="fa-folder-o"></cwn-icon> Pick</a>
         </div>
 
-        <div hidden?="{{!cloneDir}}">
-            <div>Ready to fork new git repo <b>git://github.com/{{selectedOrg}}/calvin-network-data</b></div>
-            <div>Then clone it into <b>{{cloneDir}}/{{repoName}}</b>
+        <div hidden?="{{!cloneDir}}" class="panel">
+            <div class="alert alert-success">
+                <div>Ready to fork new git repo <b>git://github.com/{{selectedOrg}}/calvin-network-data</b></div>
+                <div>Then clone it into <b>{{cloneDir}}/{{repoName}}</b></div>
+            </div>
             <div hidden?="{{running}}"><a class="btn btn-success" on-click="{{run}}">Go</a></div>
             <div hidden?="{{!running}}">{{runningMessage}}</div>
         </div>

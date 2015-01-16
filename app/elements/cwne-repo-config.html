@@ -1,0 +1,42 @@
+<polymer-element name="cwne-repo-config">
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+            .border {
+                padding: 20px;
+            }
+        </style>
+        
+        <paper-tabs selected="{{tab}}">
+            <paper-tab><cwn-icon icon="fa-folder-o"></cwn-icon>&nbsp;Select Local Repo</paper-tab>
+            <paper-tab><cwn-icon icon="fa-cloud-download"></cwn-icon>&nbsp;Clone Existing Repo</paper-tab>
+            <paper-tab><cwn-icon icon="fa-code-fork"></cwn-icon>&nbsp;Fork New Repo</paper-tab>
+        </paper-tabs>
+        
+        <div class="border">
+            <div hidden?="{{tab != 0}}">
+                <cwne-select-repo id="select"></cwne-select-repo>
+            </div>
+            <div hidden?="{{tab != 1}}">
+                Not implemented yet :(
+            </div>
+            <div hidden?="{{tab != 2}}">
+                <cwne-create-repo on-repo-created="{{onRepoCreated}}"></cwne-create-repo>
+            </div>
+        </div>
+
+    </template>
+    <script>
+
+        Polymer('cwne-repo-config', {
+            tab: 0,
+            
+            onRepoCreated : function(e) {
+                this.tab = 0;
+                this.$.select.setRoot(e.detail);
+            }
+        });
+    </script>
+</polymer-element>

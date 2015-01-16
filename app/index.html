@@ -8,23 +8,14 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  
   <!-- build:css styles/app.css -->
-  <link rel="stylesheet" href="../../ca-water-network/app/styles/deep.css" shim-shadowdom>
   <link rel="stylesheet" href="../../ca-water-network/app/components/font-awesome/css/font-awesome.min.css">
   <link rel="stylesheet" href="style.css" >
   <!-- endbuild -->
 
-
-  <!-- build:js scripts/app.js -->
+  <!-- build:js scripts/lib.js -->
   <script src="../../ca-water-network/app/components/webcomponentsjs/webcomponents.js"></script>
   <script src="../../ca-water-network/app/components/jquery/dist/jquery.js"></script> 
-  <script src="../../ca-water-network/app/components/leaflet/dist/leaflet.js"></script> 
-  <script src="../../ca-water-network/app/components/sigma.js/sigma.min.js"></script>
-  <script src="../../ca-water-network/app/components/sigma.js/plugins/sigma.renderers.customEdgeShapes.min.js"></script>
-  <script src="../../ca-water-network/app/components/sigma.js/plugins/sigma.parsers.json.min.js"></script>
-  <script src="../../ca-water-network/app/scripts/cwn.js"></script>
-  <script src="../../ca-water-network/app/scripts/sigma-cwn-plugin.js"></script>
   <!-- endbuild -->
 
   <script type="text/javascript" src="https://www.google.com/jsapi"></script>
@@ -34,8 +25,8 @@
 </head>
 <body fullbleed>
 
-  <app-main></app-main>
-  <app-fs-network-loader></app-fs-network-loader>
+  <cwne-app></cwne-app>
+  <cwne-fs-network-loader></cwne-fs-network-loader>
 
 </body>
 </html>

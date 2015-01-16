@@ -1,17 +1,17 @@
-<polymer-element name="app-main">
+<polymer-element name="cwne-app">
     <template>
-        <app-layout id="layout">
-            <page-select 
+        <cwne-layout id="layout">
+            <cwne-repo-config 
                 hidden?="{{page != 'select'}}" 
                 on-dir-selected="{{onDirSelect}}"
                 on-invalid-dir="{{onInvalidDir}}">
-            </page-select>
+            </cwne-repo-config>
             <cwn-app hidden?="{{page != 'network'}}" islocal></cwn-app>
-            <app-edit-node id="edit" hidden?="{{page != 'edit'}}"></app-edit-node>
-        </app-layout>
+            <cwne-edit-node id="edit" hidden?="{{page != 'edit'}}"></cwne-edit-node>
+        </cwne-layout>
     </template>
     <script>
-        Polymer('app-main', {
+        Polymer('cwne-app', {
             page : '',
             networkLoader : null,
 
