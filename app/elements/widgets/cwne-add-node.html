@@ -1,0 +1,383 @@
+<polymer-element name="cwne-add-node">
+    <template>
+        <link rel="stylesheet" href="../../../../ca-water-network/app/components/leaflet/dist/leaflet.css" />
+        <style>
+            :host {
+                display: block;
+                height: 100%;
+            }
+            .addPanel {
+                height: 50%;
+                padding: 10px;
+                box-shadow: 0 0 5px black;
+                position: absolute;
+                width: 100%;
+                z-index: 100;
+                overflow: auto;
+            }
+        </style>
+
+        <div id="leaflet" style="height:50%"></div>
+        <div class="addPanel">
+            <h4>Add Node</h4>
+            <div class="alert alert-info" hidden?="{{ll}}">
+                Click map to add a new node
+            </div>
+
+            <table class="table" hidden?="{{!ll}}">
+                <tr>
+                    <td>Lat / Lng</td>
+                    <td>{{ll.lat}}, {{ll.lng}}</td>
+                </tr>
+                <tr>
+                    <td>Prmname</td>
+                    <td>
+                        <input type="text" class="form-control" value="{{properties.prmname}}" />
+                        <template bind if="{{ds.lookupMap[properties.prmname]}}">
+                            <div class="alert alert-danger  animated flipInX" style="margin-top:10px">
+                                Invalid PRMNAME.  A node with this prmname already exists.
+                            </div>
+                        </template>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Type</td>
+                    <td>
+                        <select value="{{properties.type}}" class="form-control">
+                            <template repeat="{{type in types}}">
+                                <option value="{{type}}" selected?="{{type == properties.type}}">{{type}}</option>
+                            </template>
+                        </select>
+                    </td>
+                </tr>
+            </table>
+
+            <div hidden?="{{!ll}}">
+                <h4 class="page-header">Add Links</h5>
+
+                <div layout horizontal>
+                    <div>Find Node to Link</div>
+                    <cwne-node-search type="node" on-select="{{onLinkSelect}}"></cwne-node-search>
+                </div>
+
+                <template bind if="{{links.length > 0}}">
+                    <h4 class="page-header">Current Links</h4>
+
+                    <div layout horizontal>
+                        <div>
+                            <select value="{{selectedLink.index}}" class="form-control">
+                                <template repeat="{{link, i in links}}">
+                                    <option value="{{i}}">{{link.properties.prmname}}</option>
+                                </template>
+                            </select>
+                        </div>
+                        <div flex>
+                            <cwne-add-link 
+                                link="{{selectedLink.value}}" 
+                                on-delete="{{removeLink}}"
+                                on-prmname-update="{{resetOriginsTerminals}}">
+                            </cwne-add-link>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <div hidden?="{{!ll || !properties.prmname}}">
+                <a class="btn btn-success" on-click="{{save}}">Create</a>
+            </div>
+
+        </div>
+
+    </template>
+    <script>
+        (function(){
+            var fs = requireNode('fs');
+
+            Polymer('cwne-add-node', {
+                init : false,
+                map : null,
+                ds : null,
+                rootDir : '',
+
+                marker : null,
+                connected : {
+                    markers : [],
+                    lines : []
+                },
+                ll : null,
+                types : [],
+                links : [],
+
+                selectedLink : {
+                    index : 0,
+                    value : {}
+                },
+
+                properties : {
+                    prmname : '',
+                    type : '',
+                    origins : [],
+                    terminals : []
+                },
+
+                observe : {
+                    ll : 'updateLL',
+                    'properties.type' : 'redrawMarker',
+                    links : 'redraw',
+                    'properties.prmname' : 'updateLinkNames',
+                    'selectedLink.index' : 'updateSelected'
+                },
+
+                ready : function() {
+                    Polymer.whenPolymerReady(function(){
+                        this.ds = document.querySelector('html /deep/ cwn-datastore');
+                    }.bind(this));
+                },
+
+                reset : function() {
+                    if( this.marker ) this.map.removeLayer(this.marker);
+                    for( var i = 0; i < this.connected.markers.length; i++ ) {
+                        this.map.removeLayer(this.connected.markers[i]);
+                    }
+                    for( var i = 0; i < this.connected.lines.length; i++ ) {
+                        this.map.removeLayer(this.connected.lines[i]);
+                    }
+                    this.connected = {
+                        markers : [],
+                        lines : []
+                    };
+                    this.ll = null;
+                    this.links = [];
+
+                    this.selectedLink = {
+                        index : 0,
+                        value : {}
+                    };
+
+                    this.properties = {
+                        prmname : '',
+                        type : '',
+                        origins : [],
+                        terminals : []
+                    };
+                },
+
+                onShow : function() {
+                    if( !this.init ) {
+                        this.init = true;
+
+                        this.async(function(){
+                            this.map = L.map(this.$.leaflet).setView([40, -121], 5); 
+                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                maxZoom: 18
+                            }).addTo(this.map);
+                            this.map.on('click', this.onClick.bind(this));
+                        });
+
+                        for( var key in CWN.render ) {
+                            if( key[0] != '_' ) this.types.push(key);
+                        }
+                        this.properties.type = this.types[0];
+                    }
+                },
+
+                onLinkSelect : function(e) {
+                    var node = this.ds.lookupMap[e.detail];
+                    if( !node ) return alert('Error finding node');
+
+                    var link = {
+                        type : 'Feature',
+                        geometry : {
+                            type : 'LineString',
+                            coordinates : [
+                                [this.ll.lat, this.ll.lng],
+                                this._flipLL(node.geometry.coordinates)
+                            ]
+                        },
+                        properties : {
+                            description : 'No description set',
+                            isOrigin    : true,
+                            origin      : this.properties.prmname,
+                            terminus    : node.properties.prmname, 
+                            prmname     : this.properties.prmname+'-'+node.properties.prmname,
+                            type        : 'Diversion'
+                        }
+                    };
+
+                    this.links.push(link);
+                    this.resetOriginsTerminals();
+                    this.async(this.updateSelected);
+                },
+
+                updateLinkNames : function() {
+                    for( var i = 0; i < this.links.length; i++ ) {
+                        var l = this.links[i];
+                        if( l.properties.isOrigin ) {
+                            l.properties.origin = this.properties.prmname;
+                        } else {
+                            l.properties.terminus = this.properties.prmname;
+                        }
+                        l.properties.prmname = l.properties.origin+'-'+l.properties.terminus;
+                    }
+                    this.resetOriginsTerminals();
+                },
+
+                updateSelected : function() {
+                    this.selectedLink.value = this.links[parseInt(this.selectedLink.index)];
+                },
+
+                resetOriginsTerminals : function() {
+                    this.properties.origins = [];
+                    this.properties.terminals = [];
+
+                    for( var i = 0; i < this.links.length; i++ ) {
+                        if( this.links[i].properties.isOrigin ) {
+                            this.properties.terminals.push(this.links[i].properties.prmname);
+                        } else {
+                            this.properties.origins.push(this.links[i].properties.prmname);
+                        }
+                    }
+                },
+
+                onClick : function(e) {
+                    this.ll = e.latlng;
+                },
+
+                updateLL : function() {
+                    for( var i = 0; i < this.links.length; i++ ) {
+                        this.links[i].geometry.coordinates[0] = [this.ll.lat, this.ll.lng];
+                    }
+                    this.redraw();
+                },
+
+                redraw : function() {
+                    this.redrawLines();
+                    this.redrawMarker();
+                },
+
+                redrawMarker : function() {
+                    if( !this.ll || !this.properties.type ) return;
+
+                    if( this.marker ) this.map.removeLayer(this.marker);
+
+                    var options = {
+                        iconSize : new L.Point(25, 25),
+                        type : this.properties.type
+                    };
+
+                    this.marker = new L.Marker(this.ll, {
+                        icon: new L.Icon.Canvas(options), 
+                        opacity: 1
+                    });
+
+                    this.marker.addTo(this.map);
+                },
+
+                redrawLines : function() {
+                    for( var i = 0; i < this.connected.markers.length; i++ ) {
+                        this.map.removeLayer(this.connected.markers[i]);
+                    }
+                    for( var i = 0; i < this.connected.lines.length; i++ ) {
+                        this.map.removeLayer(this.connected.lines[i]);
+                    }
+
+                    this.connected = {
+                        markers : [],
+                        lines : []
+                    }
+
+                    for( var i = 0; i < this.links.length; i++ ) {
+                        var polyline = L.polyline(this.links[i].geometry.coordinates).addTo(this.map);
+                        this.connected.lines.push(polyline);
+
+                        var connectedPrmname;
+                        if( this.links[i].properties.origin == this.properties.prmname ) {
+                            connectedPrmname = this.links[i].properties.terminus;
+                        } else {
+                            connectedPrmname = this.links[i].properties.origin;
+                        }
+
+                        var n = this.ds.lookupMap[connectedPrmname];
+                        if( !n ) continue;
+
+                        var options = {
+                            iconSize : new L.Point(25, 25),
+                            type : n.properties.type
+                        };
+
+                        var marker = new L.Marker(this._flipLL(n.geometry.coordinates), {
+                            icon: new L.Icon.Canvas(options), 
+                            opacity: .5
+                        });
+                        marker.addTo(this.map);
+
+                        this.connected.markers.push(marker);
+                    }
+                },
+
+                removeLink : function(e) {
+                    var index = this.links.indexOf(e.currentTarget.link);
+                    if( index > -1 ) this.links.splice(index, 1);
+                    this.resetOriginsTerminals();
+                    this.updateSelected();
+                },
+
+                save : function() {
+
+                    if( fs.existsSync(this.rootDir+'/data/nodes/'+this._getFileName(this.properties.prmname)) ) {
+                        return alert('Invalid PRMNAME: '+this.properties.prmname);
+                    }
+
+                    for( var i = 0; i < this.links.length; i++ ) {
+                        if( fs.existsSync(this.rootDir+'/data/links/'+this._getFileName(this.links[i].properties.prmname)) ) {
+                            return alert('Invalid PRMNAME: '+this.links[i].properties.prmname);
+                        }
+                    }
+
+                    var node = {
+                        type : 'Feature',
+                        geometry : {
+                            type : 'Point',
+                            coordinates : [this.ll.lng, this.ll.lat],
+                        },
+                        properties : this.properties
+                    };
+
+                    fs.writeFileSync(
+                        this.rootDir+'/data/nodes/'+this._getFileName(this.properties.prmname),
+                        JSON.stringify(node,'', '  ')
+                    );
+                    this.ds._processNode(node);
+
+                    for( var i = 0; i < this.links.length; i++ ) {
+                        // clean up
+                        this.links[i].geometry.coordinates[0] = this._flipLL(this.links[i].geometry.coordinates[0]);
+                        this.links[i].geometry.coordinates[1] = this._flipLL(this.links[i].geometry.coordinates[1]);
+                        delete this.links[i].properties.isOrigin;
+
+                        fs.writeFileSync(
+                            this.rootDir+'/data/links/'+this._getFileName(this.links[i].properties.prmname),
+                            JSON.stringify(this.links[i], '', '  ')
+                        );
+                        this.ds._processLink(this.links[i]);
+                    }
+
+                    alert('Success!');
+                    this.reset();
+                    window.location = '#map';
+                    document.querySelector('html /deep/ cwn-map').update();
+                },
+
+                _flipLL : function(ll) {
+                    return [ll[1], ll[0]];
+                },
+
+                _getFileName : function(prmname) {
+                    return prmname.replace(/[^a-zA-Z0-9-]/g,'_')+'.geojson';
+                }
+
+            });
+        })();
+
+    </script>
+</polymer-element>

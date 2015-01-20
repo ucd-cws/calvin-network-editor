@@ -1,0 +1,71 @@
+<polymer-element name="cwne-add-link" attributes="link ref">
+    <template>
+        <style>
+            :host {
+                display: block;
+                border: 1px solid #ccc;
+                padding: 10px;
+                border-radius: 6px;
+            }
+        </style>
+
+        <h4>{{link.properties.prmname}}
+            <a class="btn btn-danger pull-right" on-click="{{fireDelete}}">X</a>
+        </h4>
+        
+
+        <table class="table">
+            <tr>
+                <td>Type</td>
+                <td>
+                    <select class="form-control" value="{{link.properties.type}}">
+                        <option value="Diversion" selected?="{{link.properties.type == 'Diversion'}}">
+                            Diversion
+                        </option>
+                        <option value="Return Flow" selected?="{{link.properties.type == 'Return Flow'}}">
+                            Return Flow
+                        </option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>Description</td>
+                <td>
+                    <textarea class="form-control">{{link.properties.description}}</textarea>
+                </td>
+            </tr>
+            <tr>
+                <td>Origin</td>
+                <td>
+                    <span>{{link.properties.origin}}</span>
+                    <a class="btn btn-default" on-click="{{switchOrigin}}">Switch</a>
+                </td>
+            </tr>
+            <tr>
+                <td>Terminus</td>
+                <td>{{link.properties.terminus}}</td>
+            </tr>
+        </table>
+
+    </template>
+    <script>
+        Polymer('cwne-add-link', {
+            link : {},
+
+            switchOrigin : function() {
+                var t = this.link.properties.origin;
+
+                this.link.properties.isOrigin = !this.link.properties.isOrigin;
+                this.link.properties.origin = this.link.properties.terminus;
+                this.link.properties.terminus = t;
+                this.link.properties.prmname = this.link.properties.origin+'-'+this.link.properties.terminus;
+                this.fire('prmname-update');
+            },
+
+            fireDelete : function() {
+                if( !confirm('Are you sure you want to delete this link?') ) return;
+                this.fire('delete');
+            }
+        });
+    </script>
+</polymer-element>

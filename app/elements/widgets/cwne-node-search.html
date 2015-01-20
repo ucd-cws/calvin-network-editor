@@ -1,0 +1,85 @@
+<!-- valid types: 'node', 'link', both -->
+<polymer-element name="cwne-node-search" attributes="type">
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+            .search-results {
+                /*position: absolute;*/
+                background-color: white;
+                margin-bottom: 5px;
+                border: 1px solid #ccc;
+            }
+            .result {
+                border-bottom: 1px solid #888;
+                cursor: pointer;
+            }
+            .result:hover {
+                background-color: #f8f8f8;
+            }
+        </style>
+
+        <input type="text" class="form-control" value="{{searchText}}" />
+        <div class="search-results" hidden?="{{results.length == 0}}">
+            <template repeat="{{result in results}}">
+                <div class="result" on-click="{{select}}" prmname="{{result.name}}">
+                    <div><b>{{result.type}}:</b> <span style="color: #888">{{result.name}}</div>
+                    <div style="padding-top: 5px">{{result.description}}</div>
+                </div>
+            </template>
+        </div>
+    </template>
+    <script>
+        Polymer('cwne-node-search', {
+            results : [],
+            type : 'both',
+            searchText : '',
+
+            ds : null,
+
+            observe : {
+                searchText : 'search'
+            },
+
+            ready : function() {
+                Polymer.whenPolymerReady(function(){
+                    this.ds = document.querySelector('html /deep/ cwn-datastore');
+                }.bind(this));
+            },
+
+            search : function() {
+                this.results = [];
+                var txt = this.searchText.toLowerCase();
+                
+                if( txt.length == 0 ) return;
+
+                if( this.type != 'link' ) {
+                    this._search(this.ds.data.nodes, this.results, txt);
+                }
+                if( this.type != 'node' ) {
+                    this._search(this.ds.data.links, this.results, txt);
+                }
+            },
+
+            _search : function(arr, results, txt) {
+                for( var i = 0; i < arr.length; i++ ) {
+                    if( results.length == 5 ) return;
+
+                    if( arr[i].properties.prmname.toLowerCase().indexOf(txt) > -1 ) {
+                        results.push({
+                            name : arr[i].properties.prmname,
+                            type : arr[i].properties.type,
+                            description : arr[i].properties.description.substring(0, 50)
+                        });
+                    }
+                }
+            },
+
+            select : function(e) {
+                this.fire('select', e.currentTarget.getAttribute('prmname'));
+                this.searchText = '';
+            }
+        });
+    </script>
+</polymer-element>
