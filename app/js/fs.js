@@ -12,14 +12,88 @@ CWN.fs = (function(){
 
 
     /*
-        Takes object 'data' and adds nodes/links:
-        data = {
-            nodes : [],
-            links : []
-        }
+        get the folder from the prmname
     */
-    function add(data) {
+    function getFolderName(prmname) {
+        return prmname.replace(/[^a-zA-Z0-9-]/g,'_');
+    }
+
+    /*
+        Takes object 'data' and adds nodes/links:
+        data = []
+    */
+    function addUpdate(data, callback) {
         
+        async.eachSeries(data,
+            function(nodeLink, next){
+
+                // first see if is new, we will now if it has a _file property or not
+                if( !nodeLink.properties._file ) {
+                    var type = 'node';
+                    if( linkTypes.indexOf(nodeLink.properties.type > -1 ) ) {
+                        type = 'link';
+                    }
+                    nodeLink.properties._file = root + '/data/' + type + 
+                        's/' + getFolderName(nodeLink.properties.prmname) + '/' + type + '.geojson';
+                }
+
+                updateNode(nodeLink, next);
+            },
+            function(err) {
+                updateNetworkOverview();
+                callback();
+            }
+        );
+    }
+
+    /*
+        Given a node or link, create folder if needed, save all $ref data, clean out _ properties
+        then save node/link
+    */
+    function updateNode(node, callback) {
+        var clone = $.extend(true, {}, node);
+
+        var file = clone.properties._file;
+        var folder = file.replace(/(link|node)\.geojson/,'');
+
+        if( !fs.existsSync(folder) ) fs.mkdirSync(folder);
+
+        saveRefs(clone, true, function(processed){
+            // TODO: should check filesystem with processed array to see if any $ref files where deleted
+
+            // remove all node.properties._*
+            _clean(clone);
+
+            if( fs.existsSync(file) ) {
+                fs.unlinkSync(file);
+            }
+
+            fs.writeFile(file, JSON.stringify(clone, '', '  '), next);
+        });
+    }
+
+    /*
+        given the current state of the filesystem, generate a new network.geojson file
+    */
+    function updateNetworkOverview() {
+        var nodes;
+        var data = load(true);
+        nodes = data.nodes;
+        
+        for( var i =0; i < data.links.length; i++ ) {
+            nodes.push(data.links[i]);
+        }
+
+        var geojson = { 
+            type: "FeatureCollection",
+            features : nodes
+        }
+
+        if( fs.existsSync(root+'/network.geojson') ) {
+            fs.unlinkSync(root+'/network.geojson')
+        }
+
+        fs.writeFileSync(root+'/network.geojson', JSON.stringify(geojson, '', '  '));
     }
 
     /*
@@ -32,7 +106,7 @@ CWN.fs = (function(){
     /*
         Loads entire network from dist
     */
-    function load() {
+    function load(noFileProperty) {
         refs = {};
         var data = {
             nodes : [],
@@ -46,7 +120,7 @@ CWN.fs = (function(){
 
             var str = fs.readFileSync(jsonFile);
             var node = JSON.parse(str);
-            node.properties._file = jsonFile
+            if( !noFileProperty ) node.properties._file = jsonFile
             data.nodes.push(node);
         }
 
@@ -57,7 +131,7 @@ CWN.fs = (function(){
 
             var str = fs.readFileSync(jsonFile);
             var link = JSON.parse(str);
-            link.properties._file = jsonFile;
+            if( !noFileProperty ) link.properties._file = jsonFile;
             data.links.push(link);
         }
 
@@ -102,7 +176,7 @@ CWN.fs = (function(){
         function shouldRemoveData() {
             return removeData;
         }
-        
+
         return {
             setCrawled : setCrawled,
             setLoading : setLoading,
@@ -116,7 +190,7 @@ CWN.fs = (function(){
         given a geojson load and data that contains $ref
     */
     function loadRefs(geojson, callback) {
-        var rootDir = geojson.properties._file.replace(/(link|node)\.geojson/,'')
+        var rootDir = geojson.properties._file.replace(/(link|node)\.geojson/,'');
 
         var handler = new RefHandler(callback);
         _crawlRefs(geojson.properties, rootDir, handler, 'load');
@@ -231,8 +305,9 @@ CWN.fs = (function(){
     } 
 
     return {
+        getFileName : getFileName,
         init : init,
-        add : add
+        addUpdate : addUpdate
     }
 
 })();
