@@ -12,48 +12,73 @@
         </cwne-layout>
     </template>
     <script>
-        Polymer('cwne-app', {
-            page : '',
-            networkLoader : null,
+        (function(){
 
-            ready : function() {
-                this.networkLoader = document.querySelector('cwne-fs-network-loader');
-                window.location = '#';
 
-                $(window).on('hashchange', this.setPage.bind(this));
-                this.setPage();
-            },
+            var gui = requireNode('nw.gui');
+            
 
-            onDirSelect : function(e) {
-                // set the root directory for the local network loader
-                this.networkLoader.rootDir = e.detail;
-                this.$.add.rootDir = e.detail;
+            Polymer('cwne-app', {
+                page : '',
+                networkLoader : null,
 
-                // poke the datastore to load;
-                this.shadowRoot.querySelector('cwn-app /deep/ cwn-datastore').init();
+                ready : function() {
+                    this.networkLoader = document.querySelector('cwne-fs-network-loader');
+                    window.location = '#';
 
-                window.location = '#map';
-                this.$.layout.showNetwork = true;
-            },
+                    $(window).on('hashchange', this.setPage.bind(this));
+                    this.setPage();
 
-            onInvalidDir : function() {
-                this.$.layout.showNetwork = false;
-            },
+                    this.initMenu();
+                },
+                
+                /* 
+                    OSX Copy & Paste Fix: 
+                    https://github.com/nwjs/nw.js/issues/1955
+                    https://github.com/nwjs/nw.js/issues/2039
+                */
+                initMenu : function() {
+                    win = gui.Window.get();
+                    var nativeMenuBar = new gui.Menu({ type: "menubar" });
+                    try {
+                        nativeMenuBar.createMacBuiltin("Calvin Network Editor");
+                        win.menu = nativeMenuBar;
+                    } catch (ex) {
+                        console.log(ex.message);
+                    }
+                },
 
-            setPage : function() {
-                var loc = window.location.hash.replace(/#/,'').replace(/\/.*/,'');
-                if( loc == '' ) {
-                    this.page = 'select';
-                } else if( loc == 'map' || loc == 'graph' || loc == 'info' ) {
-                    this.page = 'network';
-                } else if( loc == 'edit' ) {
-                    this.page = 'edit';
-                    this.$.edit.prmname = window.location.hash.split('/')[1];
-                } else if( loc == 'add' ) {
-                    this.page = 'add';
-                    this.$.add.onShow();
+                onDirSelect : function(e) {
+                    // set the root directory for the local network loader
+                    this.networkLoader.rootDir = e.detail;
+                    this.$.add.rootDir = e.detail;
+
+                    // poke the datastore to load;
+                    this.shadowRoot.querySelector('cwn-app /deep/ cwn-datastore').init();
+
+                    window.location = '#map';
+                    this.$.layout.showNetwork = true;
+                },
+
+                onInvalidDir : function() {
+                    this.$.layout.showNetwork = false;
+                },
+
+                setPage : function() {
+                    var loc = window.location.hash.replace(/#/,'').replace(/\/.*/,'');
+                    if( loc == '' ) {
+                        this.page = 'select';
+                    } else if( loc == 'map' || loc == 'graph' || loc == 'info' ) {
+                        this.page = 'network';
+                    } else if( loc == 'edit' ) {
+                        this.page = 'edit';
+                        this.$.edit.prmname = window.location.hash.split('/')[1];
+                    } else if( loc == 'add' ) {
+                        this.page = 'add';
+                        this.$.add.onShow();
+                    }
                 }
-            }
-        });
+            });
+        })();
     </script>
 </polymer-element>

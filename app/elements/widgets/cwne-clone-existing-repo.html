@@ -1,0 +1,118 @@
+<polymer-element name="cwne-clone-existing-repo">
+    <template>
+        <style>
+            .select-btn {
+                margin: 5px;
+            }
+            .panel {
+                padding: 10px;
+            }
+            .page-header {
+                margin-top: 10px !important;
+                margin-bottom: 5px !important;
+            }
+            .help {
+                padding: 20px;
+                color: #888;
+            }
+        </style>
+
+        <h3 style="text-align:center" class="page-header">Clone Remote Git Repository</h3>
+
+
+        <div class="panel">
+            <h4>Git Repository URL</h4>
+            <input type="text" class="form-control" placeholder="ex: https://github.com/ucd-cws/calvin-network-data.git" value="{{selectedUrl}}" />
+        </div>
+
+        <div hidden?="{{!selectedUrl}}" class="panel">
+            <h4 class='page-header'>Choose local directory to clone remote respositry into.</h4>
+            <input style="display:none;" id="fileDialog" type="file" on-change="{{onSelect}}" webkitdirectory />
+            <a class="btn btn-default" on-click="{{chooseFile}}" ><cwn-icon icon="fa-folder-o"></cwn-icon> Pick</a>
+        </div>
+
+        <div hidden?="{{!cloneDir}}" class="panel">
+            <div class="alert alert-success">
+                <div>Ready to clone remote git repo <b>{{selectedUrl}}</b></div>
+                <div>Then clone it into <b>{{cloneDir}}/{{repoName}}</b></div>
+            </div>
+            <div hidden?="{{running}}"><a class="btn btn-success" on-click="{{clone}}">Go</a></div>
+            <div hidden?="{{!running}}"><cwn-icon icon="fa-spinner fa-spin"></cwn-icon> {{runningMessage}}</div>
+        </div>
+    </template>
+    <script>
+        (function(){
+            var request = requireNode('request');
+            var gui = requireNode('nw.gui');
+            var git = requireNode('nodegit');
+            var fs = requireNode('fs');
+
+            Polymer('cwne-clone-existing-repo', {
+                attempted : false,
+                selectedUrl : 'https://github.com/ucd-cws/calvin-network-data.git',
+                loading : false,
+                cloneDir : '',
+                running : false,
+                runningMessage : '',
+                repoName : 'calvin-network-data',
+
+                observe : {
+                    selectedUrl : 'updateRepoName'
+                },
+
+                reset : function() {
+                    this.attempted = false;
+                    this.selectedUrl = '';
+                    this.orgs = [];
+                    this.loading = false;
+                    this.user = null;
+                    this.cloneDir = '';
+                    this.running = false;
+                    this.runningMessage = '';
+                },
+
+                updateRepoName : function() {
+                    this.repoName = this.selectedUrl.replace(/^.*\//,'').replace(/\.git$/,'');
+                },
+
+                goTo : function(e) {
+                    var url = e.currentTarget.getAttribute('url');
+                    gui.Shell.openExternal(url);
+                },
+
+                chooseFile : function() {
+                    this.$.fileDialog.click();
+                },
+
+                onSelect : function(e) {
+                    this.cloneDir = this.$.fileDialog.value;
+
+                    if( fs.existsSync(this.cloneDir+'/'+this.repoName) ) {
+                        return alert('Directory already exists: '+this.cloneDir+'/'+this.repoName);
+                    }
+                },
+
+                clone : function() {
+
+                    if( fs.existsSync(this.cloneDir+'/'+this.repoName) ) {
+                        return alert('Directory already exists: '+this.cloneDir+'/'+this.repoName);
+                    }
+                    this.running = true;
+                    this.runningMessage = 'Cloning Repo...'
+
+                    CWN.git.clone(this.cloneDir, this.selectedUrl, function(err, resp){
+                        this.running = false;
+                        
+                        debugger;
+                        if( err ) return alert(err);
+
+                        alert('Success!');
+                        this.fire('repo-cloned', this.cloneDir+'/'+this.repoName);
+                        this.reset();
+                    }.bind(this));
+                }
+            });
+        })();
+
+    </script>
+</polymer-element>

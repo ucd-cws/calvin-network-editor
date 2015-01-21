@@ -3,7 +3,10 @@
 <head>
   <title>CALVIN Network Editor</title>
   <script>
-    process.on("uncaughtException", function(e) { console.log(e); });
+    process.on("uncaughtException", function(e) { 
+      debugger;
+      console.log(e); 
+    });
   </script>
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,13 +20,9 @@
   <!-- build:js scripts/lib.js -->
   <script src="../../ca-water-network/app/components/webcomponentsjs/webcomponents.js"></script>
   <script src="../../ca-water-network/app/components/jquery/dist/jquery.js"></script> 
+  <script src="js/requireFix.js"></script> 
+  <script src="js/git.js"></script> 
   <!-- endbuild -->
-
-  <!-- dealing with 'require' ns conflict -->
-  <script type="text/javascript">
-      window.requireNode = window.require;
-      window.require = undefined; 
-  </script>
 
   <script type="text/javascript" src="https://www.google.com/jsapi"></script>
 

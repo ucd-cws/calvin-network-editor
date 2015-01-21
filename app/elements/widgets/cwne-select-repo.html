@@ -83,6 +83,7 @@
             var fs = requireNode('fs');
             var git = requireNode('nodegit');
             var gui = requireNode('nw.gui');
+            var watch = requireNode('watch');
             var exec = requireNode('child_process').exec;
 
             Polymer('cwne-select-repo', {
@@ -121,6 +122,10 @@
                 },
 
                 select : function(dir) {
+                    if( this.rootDir ) {
+                        watch.unwatchTree(this.rootDir);
+                    }
+
                     this.rootDir = dir;
                     window.localStorage.setItem('rootDir', this.rootDir);
                     this.selected = true;
@@ -128,6 +133,8 @@
                 },
 
                 check : function() {
+                    if( !fs.existsSync(this.rootDir) ) return;
+
                     this.refreshing = true;
                     this.files = fs.readdirSync(this.rootDir);
 
@@ -150,7 +157,9 @@
                         .then(function(repo){
                             this.repo = repo;
                             this.valid = true;
-                            this.getInfo();
+                            this.watch();
+                            //this should be called when watch is setup now...
+                            //this.getInfo();
                         }.bind(this), function(err) {
                             if( err && err.message ) this.errMsg = error.message;
                             else this.errMsg = 'Invalid git repo';
@@ -159,6 +168,13 @@
                             this.refreshing = false;
                             this.fire('invalid-dir');
                         }.bind(this));
+                },
+
+                watch : function() {
+                    watch.watchTree(this.rootDir, {ignoreDotFiles : true}, function (f, curr, prev) {
+                        console.log('Repo changed!');
+                        this.getInfo();
+                    }.bind(this));
                 },
 
                 getRepoName : function() {
@@ -174,19 +190,12 @@
 
                 getAllInfo : function() {
                     // TODO: does this work in windows?
-                    exec('cd '+this.rootDir+' && git status ',  function (error, stdout, stderr) {
+                    CWN.git.status(this.rootDir, function(err, resp){
                         var ele = this.shadowRoot.querySelector('#statusTxt');
-
-                        //if( error ) {
-                        //    ele.innerHTML = (typeof error == 'object') ? JSON.stringify(error) : error;
-                        //} else 
-                        if ( stderr ) {
-                            ele.innerHTML = stderr.replace(/ /g,'&nbsp;').replace(/\n|\r/g,'<br />');
-                        } else if ( stdout ) {
-                            ele.innerHTML = stdout.replace(/ /g,'&nbsp;').replace(/\n|\r/g,'<br />');
-                        }
+                        if( err ) ele.innerHTML = err.replace(/ /g,'&nbsp;').replace(/\n|\r/g,'<br />');
+                        else ele.innerHTML = resp.replace(/ /g,'&nbsp;').replace(/\n|\r/g,'<br />');
                         this.refreshing = false;
-                    }.bind(this));
+                    });
                 },
 
                 refresh : function() {

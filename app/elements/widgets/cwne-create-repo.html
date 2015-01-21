@@ -62,8 +62,8 @@
 
         <div hidden?="{{!cloneDir}}" class="panel">
             <div class="alert alert-success">
-                <div>Ready to fork new git repo <b>git://github.com/{{selectedOrg}}/calvin-network-data</b></div>
-                <div>Then clone it into <b>{{cloneDir}}/{{repoName}}</b></div>
+                <div>Ready to fork new git repo <b>https://github.com/{{selectedOrg}}/calvin-network-data</b></div>
+                <div>Into <b>{{cloneDir}}/{{repoName}}</b></div>
             </div>
             <div hidden?="{{running}}"><a class="btn btn-success" on-click="{{run}}">Go</a></div>
             <div hidden?="{{!running}}">{{runningMessage}}</div>
@@ -230,24 +230,19 @@
                     if( fs.existsSync(this.cloneDir+'/'+this.repoName) ) {
                         return alert('Directory already exists');
                     }
-                    fs.mkdirSync(this.cloneDir+'/'+this.repoName);
+                    //fs.mkdirSync(this.cloneDir+'/'+this.repoName);
 
-                    git.Clone.clone(
-                        'git://github.com/'+this.selectedOrg+'/'+this.repoName, 
-                        this.cloneDir+'/'+this.repoName)
-                    .then(
-                        function(repo) {
+                    CWN.git.clone(this.cloneDir, 
+                        'https://github.com/'+this.selectedOrg+'/'+this.repoName, 
+                        function(err, resp){
+                            this.running = false;
+                        
+                            if( err ) return alert(err);
+
                             alert('Success!');
-
                             this.fire('repo-created', this.cloneDir+'/'+this.repoName);
                             this.reset();
-                        }.bind(this), 
-                        function(err){
-                            this.running = false;    
-                            console.log(err);
-                            alert(error.message)
-                        }
-                    );
+                    }.bind(this));
                 }
             });
         })();

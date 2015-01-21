@@ -20,7 +20,7 @@
                 <cwne-select-repo id="select"></cwne-select-repo>
             </div>
             <div hidden?="{{tab != 1}}">
-                Not implemented yet :(
+                <cwne-clone-existing-repo on-repo-cloned="{{onRepoCreated}}"></cwne-clone-existing-repo>
             </div>
             <div hidden?="{{tab != 2}}">
                 <cwne-create-repo on-repo-created="{{onRepoCreated}}"></cwne-create-repo>
@@ -35,7 +35,7 @@
             
             onRepoCreated : function(e) {
                 this.tab = 0;
-                this.$.select.setRoot(e.detail);
+                this.$.select.select(e.detail);
             }
         });
     </script>
