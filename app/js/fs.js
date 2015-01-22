@@ -3,6 +3,7 @@ if( !window.CWN ) window.CWN = {};
 
 CWN.fs = (function(){
     var fs = requireNode('fs');
+    var async = requireNode('async');
     var csvParse = requireNode('csv-parse');
     var csvStringify = requireNode('csv-stringify');
 
@@ -30,7 +31,7 @@ CWN.fs = (function(){
                 // first see if is new, we will now if it has a _file property or not
                 if( !nodeLink.properties._file ) {
                     var type = 'node';
-                    if( linkTypes.indexOf(nodeLink.properties.type > -1 ) ) {
+                    if( linkTypes.indexOf(nodeLink.properties.type) > -1 ) {
                         type = 'link';
                     }
                     nodeLink.properties._file = root + '/data/' + type + 
@@ -68,7 +69,7 @@ CWN.fs = (function(){
                 fs.unlinkSync(file);
             }
 
-            fs.writeFile(file, JSON.stringify(clone, '', '  '), next);
+            fs.writeFile(file, JSON.stringify(clone, '', '  '), callback);
         });
     }
 
@@ -148,6 +149,9 @@ CWN.fs = (function(){
         var loading = 0;
         var crawled = false;
         var removeData = false;
+        // this array is returned in the callback, let's others know what files
+        // were process. useful for knowing what to delete (ie, what files on)
+        // disk are no longer part of the node/link.
         var processed = [];
 
         function checkDone() {
@@ -155,17 +159,17 @@ CWN.fs = (function(){
         }
 
         function setCrawled() {
-            this.crawled = true;
+            crawled = true;
             checkDone();
         }
 
         function setLoading(filename) {
             processed.push(filename);
-            this.loading++;
+            loading++;
         }
 
         function setLoaded() {
-            this.loading--;
+            loading--;
             checkDone();
         }
 
@@ -202,6 +206,7 @@ CWN.fs = (function(){
         object when saved.
     */
     function saveRefs(geojson, remove, callback) {
+
         var rootDir = geojson.properties._file.replace(/(link|node)\.geojson/,'')
 
         var handler = new RefHandler(callback);
@@ -305,7 +310,7 @@ CWN.fs = (function(){
     } 
 
     return {
-        getFileName : getFileName,
+        getFolderName : getFolderName,
         init : init,
         addUpdate : addUpdate
     }

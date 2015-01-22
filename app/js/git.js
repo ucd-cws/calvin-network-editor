@@ -1,11 +1,13 @@
 if( !window.CWN ) window.CWN = {};
 
-/* helper functions for runing git shell commands as the nodegit library is not getting us where we need to be */ 
+/* 
+    helper functions for runing git shell commands as the nodegit library is not getting us where we need to be 
+*/ 
 
-/**
+/*
     Note, stdout seems to be going to stderr... but git commands to send back error codes
     on error, so check if error and pipe output from there
-**/
+*/
 CWN.git = (function(){
 
     var exec = requireNode('child_process').exec;
@@ -16,7 +18,7 @@ CWN.git = (function(){
         }.bind(this));
     }
 
-    function status(dir) {
+    function status(dir, callback) {
         exec('cd '+dir+' && git status ',  function (error, stdout, stderr) {
             _handleGitResponse(error, stdout, stderr, callback);
         }.bind(this));
@@ -32,7 +34,8 @@ CWN.git = (function(){
     }
 
     return {
-        clone : clone
+        clone : clone,
+        status : status
     }
 
 })();

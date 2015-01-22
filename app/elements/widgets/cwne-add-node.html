@@ -196,7 +196,7 @@
                         },
                         properties : {
                             description : 'No description set',
-                            isOrigin    : true,
+                            _isOrigin    : true,
                             origin      : this.properties.prmname,
                             terminus    : node.properties.prmname, 
                             prmname     : this.properties.prmname+'-'+node.properties.prmname,
@@ -212,7 +212,7 @@
                 updateLinkNames : function() {
                     for( var i = 0; i < this.links.length; i++ ) {
                         var l = this.links[i];
-                        if( l.properties.isOrigin ) {
+                        if( l.properties._isOrigin ) {
                             l.properties.origin = this.properties.prmname;
                         } else {
                             l.properties.terminus = this.properties.prmname;
@@ -231,7 +231,7 @@
                     this.properties.terminals = [];
 
                     for( var i = 0; i < this.links.length; i++ ) {
-                        if( this.links[i].properties.isOrigin ) {
+                        if( this.links[i].properties._isOrigin ) {
                             this.properties.terminals.push(this.links[i].properties.prmname);
                         } else {
                             this.properties.origins.push(this.links[i].properties.prmname);
@@ -323,17 +323,17 @@
                 },
 
                 save : function() {
-
-                    if( fs.existsSync(this.rootDir+'/data/nodes/'+this._getFileName(this.properties.prmname)) ) {
+                    if( fs.existsSync(this.rootDir+'/data/nodes/'+CWN.fs.getFolderName(this.properties.prmname)) ) {
                         return alert('Invalid PRMNAME: '+this.properties.prmname);
                     }
 
                     for( var i = 0; i < this.links.length; i++ ) {
-                        if( fs.existsSync(this.rootDir+'/data/links/'+this._getFileName(this.links[i].properties.prmname)) ) {
+                        if( fs.existsSync(this.rootDir+'/data/links/'+CWN.fs.getFolderName(this.links[i].properties.prmname)) ) {
                             return alert('Invalid PRMNAME: '+this.links[i].properties.prmname);
                         }
                     }
 
+                    var data = [];
                     var node = {
                         type : 'Feature',
                         geometry : {
@@ -342,38 +342,31 @@
                         },
                         properties : this.properties
                     };
-
-                    fs.writeFileSync(
-                        this.rootDir+'/data/nodes/'+this._getFileName(this.properties.prmname),
-                        JSON.stringify(node,'', '  ')
-                    );
-                    this.ds._processNode(node);
+                    data.push(node);
 
                     for( var i = 0; i < this.links.length; i++ ) {
-                        // clean up
+                        // clean up, the lat/lng are switch... grrrr
                         this.links[i].geometry.coordinates[0] = this._flipLL(this.links[i].geometry.coordinates[0]);
                         this.links[i].geometry.coordinates[1] = this._flipLL(this.links[i].geometry.coordinates[1]);
-                        delete this.links[i].properties.isOrigin;
 
-                        fs.writeFileSync(
-                            this.rootDir+'/data/links/'+this._getFileName(this.links[i].properties.prmname),
-                            JSON.stringify(this.links[i], '', '  ')
-                        );
-                        this.ds._processLink(this.links[i]);
+                        data.push(this.links[i]); 
                     }
 
-                    alert('Success!');
-                    this.reset();
-                    window.location = '#map';
-                    document.querySelector('html /deep/ cwn-map').update();
+                    CWN.fs.addUpdate(data, function() {
+                        this.ds._processNode(node);
+                        for( var i = 0; i < this.links.length; i++ ) {
+                            this.ds._processLink(this.links[i]);
+                        }
+
+                        alert('Success!');
+                        this.reset();
+                        window.location = '#map';
+                        document.querySelector('html /deep/ cwn-map').update();
+                    }.bind(this));                    
                 },
 
                 _flipLL : function(ll) {
                     return [ll[1], ll[0]];
-                },
-
-                _getFileName : function(prmname) {
-                    return prmname.replace(/[^a-zA-Z0-9-]/g,'_')+'.geojson';
                 }
 
             });

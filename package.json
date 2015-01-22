@@ -21,7 +21,8 @@
     "nodegit": "^0.2.4",
     "watch": "^0.13.0",
     "csv-parse": "0.0.6",
-    "csv-stringify": "0.0.5"
+    "csv-stringify": "0.0.5",
+    "async": "^0.9.0"
   },
   "devDependencies": {
     "grunt": "~0.4.5",

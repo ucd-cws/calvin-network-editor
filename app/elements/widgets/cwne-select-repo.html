@@ -195,7 +195,7 @@
                         if( err ) ele.innerHTML = err.replace(/ /g,'&nbsp;').replace(/\n|\r/g,'<br />');
                         else ele.innerHTML = resp.replace(/ /g,'&nbsp;').replace(/\n|\r/g,'<br />');
                         this.refreshing = false;
-                    });
+                    }.bind(this));
                 },
 
                 refresh : function() {
@@ -211,6 +211,9 @@
                 },
 
                 useDir : function() {
+                    // init the filesystem helper
+                    CWN.fs.init(this.rootDir);
+                    
                     this.fire('dir-selected', this.rootDir);
                 },
 
