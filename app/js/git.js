@@ -19,7 +19,25 @@ CWN.git = (function(){
     }
 
     function status(dir, callback) {
-        exec('cd '+dir+' && git status ',  function (error, stdout, stderr) {
+        exec('cd '+dir+' && git status',  function (error, stdout, stderr) {
+            _handleGitResponse(error, stdout, stderr, callback);
+        }.bind(this));
+    }
+
+    function getCurrentBranch(dir, callback) {
+        exec('cd '+dir+' && git branch -l',  function (error, stdout, stderr) {
+            if( !error ) {
+                stdout = stdout+stderr;
+                stdout = stdout.split('\n');
+                for( var i = 0; i < stdout.length; i++ ) {
+                    if( stdout[i].length > 0 && stdout[i][0] == '*' ) {
+                        stdout = stdout[i].replace(/^\* /,'');
+                        break;
+                    }
+                }
+                if( typeof stdout != 'string' ) stdout = '';
+            }
+
             _handleGitResponse(error, stdout, stderr, callback);
         }.bind(this));
     }
@@ -35,7 +53,8 @@ CWN.git = (function(){
 
     return {
         clone : clone,
-        status : status
+        status : status,
+        getCurrentBranch : getCurrentBranch
     }
 
 })();

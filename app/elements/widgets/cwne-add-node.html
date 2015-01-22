@@ -1,4 +1,4 @@
-<polymer-element name="cwne-add-node">
+<polymer-element name="cwne-node-editor" attributes="editMode isLink">
     <template>
         <link rel="stylesheet" href="../../../../ca-water-network/app/components/leaflet/dist/leaflet.css" />
         <style>
@@ -6,7 +6,7 @@
                 display: block;
                 height: 100%;
             }
-            .addPanel {
+            .nodePanel {
                 height: 50%;
                 padding: 10px;
                 box-shadow: 0 0 5px black;
@@ -18,9 +18,12 @@
         </style>
 
         <div id="leaflet" style="height:50%"></div>
-        <div class="addPanel">
-            <h4>Add Node</h4>
-            <div class="alert alert-info" hidden?="{{ll}}">
+        <div class="nodePanel">
+
+            <h4 hidden?="{{editMode}}">Add Node</h4>
+            <h4 hidden?="{{!editMode}}">Edit Node: {{properties.prmname}}</h4>
+            
+            <div class="alert alert-info" hidden?="{{ll && !editMode}}">
                 Click map to add a new node
             </div>
 
@@ -33,7 +36,7 @@
                     <td>Prmname</td>
                     <td>
                         <input type="text" class="form-control" value="{{properties.prmname}}" />
-                        <template bind if="{{ds.lookupMap[properties.prmname]}}">
+                        <template bind if="{{!isValidName}}">
                             <div class="alert alert-danger  animated flipInX" style="margin-top:10px">
                                 Invalid PRMNAME.  A node with this prmname already exists.
                             </div>
@@ -52,8 +55,8 @@
                 </tr>
             </table>
 
-            <div hidden?="{{!ll}}">
-                <h4 class="page-header">Add Links</h5>
+            <div hidden?="{{!ll || isLink}}">
+                <h4 class="page-header">Add/Remove Links</h5>
 
                 <div layout horizontal>
                     <div>Find Node to Link</div>
@@ -63,27 +66,28 @@
                 <template bind if="{{links.length > 0}}">
                     <h4 class="page-header">Current Links</h4>
 
-                    <div layout horizontal>
-                        <div>
-                            <select value="{{selectedLink.index}}" class="form-control">
-                                <template repeat="{{link, i in links}}">
-                                    <option value="{{i}}">{{link.properties.prmname}}</option>
-                                </template>
-                            </select>
-                        </div>
-                        <div flex>
-                            <cwne-add-link 
-                                link="{{selectedLink.value}}" 
-                                on-delete="{{removeLink}}"
-                                on-prmname-update="{{resetOriginsTerminals}}">
-                            </cwne-add-link>
-                        </div>
+                    <div>
+                        <select value="{{selectedLink.index}}" class="form-control">
+                            <template repeat="{{link, i in links}}">
+                                <option value="{{i}}">{{link.properties.prmname}}</option>
+                            </template>
+                        </select>
+                    </div>
+                    <div>
+                        <cwne-add-link 
+                            link="{{selectedLink.value}}" 
+                            on-delete="{{removeLink}}"
+                            on-prmname-update="{{resetOriginsTerminals}}">
+                        </cwne-add-link>
                     </div>
                 </template>
             </div>
 
             <div hidden?="{{!ll || !properties.prmname}}">
-                <a class="btn btn-success" on-click="{{save}}">Create</a>
+                <a class="btn btn-success" on-click="{{save}}">
+                    <span hidden?="{{isEdit}}">Create</span>
+                    <span hidden?="{{!isEdit}}">Save</span>
+                </a>
             </div>
 
         </div>
@@ -93,26 +97,40 @@
         (function(){
             var fs = requireNode('fs');
 
-            Polymer('cwne-add-node', {
+            Polymer('cwne-node-editor', {
+                // has the map been initialized
                 init : false,
+                // leaflet map
                 map : null,
+                // datastore reference
                 ds : null,
+                // root directory
                 rootDir : '',
 
-                marker : null,
+                // markers and lines connected to editing node (leaflet)
                 connected : {
                     markers : [],
                     lines : []
                 },
+
+                // currrent latlng, as leaflet object
                 ll : null,
+                // current leaflet marker for editing node
+                marker : null,
+
+                // known type of links/nodes
                 types : [],
+
+                // current attached links
                 links : [],
 
+                // currently visible link
                 selectedLink : {
                     index : 0,
                     value : {}
                 },
 
+                // current node properties
                 properties : {
                     prmname : '',
                     type : '',
@@ -120,11 +138,22 @@
                     terminals : []
                 },
 
+                // is the current PRMNAME valid?
+                isValidName : true,
+
+                // if this is edit, keep track of that the prmname started as
+                originalPrmname : '',
+
+                editMode : false,
+                isLink : false,
+
+                linkTypes : ['Diversion', 'Return Flow'],
+
                 observe : {
                     ll : 'updateLL',
                     'properties.type' : 'redrawMarker',
                     links : 'redraw',
-                    'properties.prmname' : 'updateLinkNames',
+                    'properties.prmname' : 'onPrmUpdate',
                     'selectedLink.index' : 'updateSelected'
                 },
 
@@ -162,6 +191,35 @@
                     };
                 },
 
+                editNode : function(node) {
+                    this.reset();
+                    this.editMode = true;
+
+                    this.originalPrmname = node.properties.prmname;
+                    this.properties = node.properties;
+    
+                    if( this.linkTypes.indexOf(this.properties.type) > -1 ) {
+                        this.isLink = true;
+
+                    } else {
+                        this.isLink = false;
+                    }
+                },
+
+                onPrmUpdate : function() {
+                    this.isValidName = true;
+                    if( !this.editMode && ds.lookupMap[properties.prmname] ) {
+                        this.isValidName = false;
+                    } else if ( this.editMode && 
+                        ds.lookupMap[properties.prmname] && 
+                        this.properties.prmname != this.originalPrmname ) {
+
+                        this.isValidName = false;
+                    }
+
+                    this.updateLinkNames();
+                },
+
                 onShow : function() {
                     if( !this.init ) {
                         this.init = true;
@@ -175,7 +233,7 @@
                         });
 
                         for( var key in CWN.render ) {
-                            if( key[0] != '_' ) this.types.push(key);
+                            if( key[0] != '_' && this.linkTypes.indexOf(key) == 0 ) this.types.push(key);
                         }
                         this.properties.type = this.types[0];
                     }

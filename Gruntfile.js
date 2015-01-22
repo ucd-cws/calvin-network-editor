@@ -250,14 +250,31 @@ module.exports = function (grunt) {
                     stderr: true
                 },
                 command: 'node_modules/nodewebkit/bin/nodewebkit app/'
+            },
+            'run-ms' : {
+                options: {
+                    stdout: true,
+                    stderr: true
+                },
+                command: '.\\node_modules\\nodewebkit\\nodewebkit\\nw.exe app'
             }
         }
-  });
+    });
 
+    grunt.registerTask('run', 'Detect OS and run different task based on it', function() {
+        var tasks = grunt.config('shell');
+        console.log(process.platform);
+        if (/win32/.test(process.platform) ) {
+            grunt.task.run('shell:run-ms');
+        } else {
+            grunt.task.run('shell:run');
+        }
+    });
+/*
   grunt.registerTask('run',[
     'shell:run'
   ]);
-
+*/
   grunt.registerTask('build',[
     'clean:dist',
     'copy:dist',

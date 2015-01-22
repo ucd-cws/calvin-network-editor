@@ -71,7 +71,7 @@
                         </uL>
                     </div>
                 </div>
-                <div hidden?="{{valid}}" class="invalid">
+                <div hidden?="{{valid || refreshing}}" class="invalid">
                     <div class="invalid">Invalid Directory: {{errMsg}}</div>
                     <div><a class="btn btn-default" on-click="{{check}}"><cwn-icon icon="{{refreshing ? 'fa-spinner fa-spin' : 'fa-refresh'}}"></cwn-icon></a></div>
                 </div>
@@ -81,7 +81,8 @@
     <script>
         (function(){
             var fs = requireNode('fs');
-            var git = requireNode('nodegit');
+            //this is a pain to maintain
+            //var git = requireNode('nodegit');
             var gui = requireNode('nw.gui');
             var watch = requireNode('watch');
             var exec = requireNode('child_process').exec;
@@ -153,7 +154,21 @@
                         return;
                     }
 
-                    git.Repository.initExt(this.rootDir, git.RepositoryInitOptions)
+                    CWN.git.status(this.rootDir, function(err, resp){
+                        if( err ) {
+                            this.errMsg = err;
+                            this.valid = false;
+                            this.refreshing = false;
+                            this.fire('invalid-dir');
+                            return;
+                        }
+
+                        this.valid = true;
+                        this.watch();
+                    }.bind(this));
+
+
+                    /*git.Repository.initExt(this.rootDir, git.RepositoryInitOptions)
                         .then(function(repo){
                             this.repo = repo;
                             this.valid = true;
@@ -167,7 +182,7 @@
                             this.valid = false;
                             this.refreshing = false;
                             this.fire('invalid-dir');
-                        }.bind(this));
+                        }.bind(this));*/
                 },
 
                 watch : function() {
@@ -178,14 +193,25 @@
                 },
 
                 getRepoName : function() {
-                    this.repo.getCurrentBranch()
+                    CWN.git.getCurrentBranch(this.rootDir, function(err, resp){
+                        if( err ) {
+                            alert('Error requesting branch info');
+                            this.refreshing = false;
+                            return;
+                        }
+
+                        this.branch = resp.replace(/ /g,'&nbsp;').replace(/\n|\r/g,'<br />');
+                        this.getAllInfo();
+                    }.bind(this));
+
+                    /*this.repo.getCurrentBranch()
                         .then(function(branch, info){
                             this.branch = branch.name().replace(/.*\//,'');
                             this.getAllInfo();
                         }.bind(this), function(err){
                             alert('Error requesting branch info');
                             this.refreshing = false;
-                        }.bind(this));
+                        }.bind(this));*/
                 },
 
                 getAllInfo : function() {
