@@ -38,6 +38,8 @@ grunt build
 
 Note.  It's important the two repo's share a parent as the calvin-network-editor bootstraps the ca-water-network webapp.
 
+The root data repo, [calvin-network-data](https://github.com/ucd-cws/calvin-network-data), can be cloned using git.  You can also use the editor to clone the repo or fork the repo into your account or an organization you belong to.
+
 ## Commands
 - **ctrl + r**: refresh app
 - **ctrl + i**: open devtools
