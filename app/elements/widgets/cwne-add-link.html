@@ -53,12 +53,23 @@
             link : {},
 
             switchOrigin : function() {
-                var t = this.link.properties.origin;
+                
 
                 this.link.properties.isOrigin = !this.link.properties.isOrigin;
+
+                // flip coordinates
+                t = this.link.geometry.coordinates[0];
+                this.link.geometry.coordinates[0] = this.link.geometry.coordinates[1];
+                this.link.geometry.coordinates[1] = t;
+
+                // flip link names
+                t = this.link.properties.origin;
                 this.link.properties.origin = this.link.properties.terminus;
                 this.link.properties.terminus = t;
+
+                // set new prmname
                 this.link.properties.prmname = this.link.properties.origin+'-'+this.link.properties.terminus;
+
                 this.fire('prmname-update');
             },
 

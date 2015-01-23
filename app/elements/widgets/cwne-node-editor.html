@@ -1,0 +1,614 @@
+<!--
+    NOTE: _isOrigin flag is in reference to the editing node.  So if an link is marked as _isOrigin,
+    it means the *terminus* of the link points at the node.
+-->
+
+<polymer-element name="cwne-node-editor" attributes="editMode isLink">
+    <template>
+        <link rel="stylesheet" href="../../../../ca-water-network/app/components/leaflet/dist/leaflet.css" />
+        <style>
+            :host {
+                display: block;
+                height: 100%;
+            }
+            .nodePanel {
+                height: 50%;
+                padding: 10px;
+                box-shadow: 0 0 5px black;
+                position: absolute;
+                width: 100%;
+                z-index: 100;
+                overflow: auto;
+            }
+        </style>
+
+        <div id="leaflet" style="height:50%"></div>
+        <div class="nodePanel">
+
+            <h4 hidden?="{{editMode}}">Add Node</h4>
+            <h4 hidden?="{{!editMode}}">
+                Edit Node: {{properties.prmname}}
+                <a class="btn btn-danger pull-right"><cwn-icon icon="fa-trash"></cwn-icon></a>
+            </h4>
+            
+            <div class="alert alert-info" hidden?="{{ll || editMode}}">
+                Click map to add a new node
+            </div>
+
+            <table class="table" hidden?="{{!ll && !editMode}}">
+                <tr>
+                    <td>Lat / Lng</td>
+                    <td>
+                        <template bind if="{{isLink}}">
+                            <span>({{links[0].geometry.coordinates[0][0]}}, 
+                                    {{links[0].geometry.coordinates[0][1]}}) 
+                                    ({{links[0].geometry.coordinates[1][0]}}, 
+                                    {{links[0].geometry.coordinates[1][1]}})</span>
+                        </template>
+                        <template bind if="{{!isLink}}">
+                            <span>{{ll.lat}}, {{ll.lng}}</span>
+                            <a class="btn btn-link pull-right"
+                                hidden?="{{ll == orgLL || !editMode || isLink}}"
+                                on-click="{{resetLL}}">Reset</a>
+                        </template>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Prmname</td>
+                    <td>
+                        <input type="text" class="form-control" value="{{properties.prmname}}" />
+                        <template bind if="{{!isValidName}}">
+                            <div class="alert alert-danger  animated flipInX" style="margin-top:10px">
+                                Invalid PRMNAME.  A node with this prmname already exists.
+                            </div>
+                        </template>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Type</td>
+                    <td>
+                        <template bind if="{{!isLink}}">
+                            <select value="{{properties.type}}" class="form-control">
+                                <template repeat="{{type in types}}">
+                                    <option value="{{type}}" selected?="{{type == properties.type}}">{{type}}</option>
+                                </template>
+                            </select>
+                        </template>
+
+                        <template bind if="{{isLink}}">
+                            <select value="{{properties.type}}" class="form-control">
+                                <template repeat="{{type in linkTypes}}">
+                                    <option value="{{type}}" selected?="{{type == properties.type}}">{{type}}</option>
+                                </template>
+                            </select>
+                        </template>
+                    </td>
+                </tr>
+            </table>
+
+            <div hidden?="{{!ll || isLink}}">
+                <h4 class="page-header">Add/Remove Links</h5>
+
+                <div layout horizontal>
+                    <div>Find Node to Link</div>
+                    <cwne-node-search type="node" on-select="{{onLinkSelect}}"></cwne-node-search>
+                </div>
+
+                <template bind if="{{links.length > 0}}">
+                    <h4 class="page-header">Current Links</h4>
+
+                    <div>
+                        <select value="{{selectedLink.index}}" class="form-control">
+                            <template repeat="{{link, i in links}}">
+                                <option value="{{i}}">{{link.properties.prmname}}</option>
+                            </template>
+                        </select>
+                    </div>
+                    <div>
+                        <cwne-add-link 
+                            link="{{selectedLink.value}}" 
+                            on-delete="{{removeLink}}"
+                            on-prmname-update="{{resetOriginsTerminals}}">
+                        </cwne-add-link>
+                    </div>
+                </template>
+            </div>
+
+            <div hidden?="{{!ll || !properties.prmname}}">
+                <a class="btn btn-success" on-click="{{save}}">
+                    <span hidden?="{{isEdit}}">Create</span>
+                    <span hidden?="{{!isEdit}}">Save</span>
+                </a>
+            </div>
+
+        </div>
+
+    </template>
+    <script>
+
+        Polymer('cwne-node-editor', {
+            fs : requireNode('fs'),
+
+            // has the map been initialized
+            init : false,
+            // leaflet map
+            map : null,
+            // datastore reference
+            ds : null,
+            // root directory
+            rootDir : '',
+
+            // markers and lines connected to editing node (leaflet)
+            connected : {
+                markers : [],
+                lines : []
+            },
+
+            // currrent latlng, as leaflet object
+            ll : null,
+            // original lat / lng, for quick reset
+            orgLL : null,
+            // current leaflet marker for editing node
+            marker : null,
+
+            // known type of links/nodes
+            types : [],
+
+            // current attached links
+            links : [],
+
+            // currently visible link
+            selectedLink : {
+                index : 0,
+                value : {}
+            },
+
+            // current node properties
+            properties : {
+                prmname : '',
+                type : '',
+                origins : [],
+                terminals : []
+            },
+
+            // is the current PRMNAME valid?
+            isValidName : true,
+
+            // if this is edit, keep track of that the prmname started as
+            originalPrmname : '',
+
+            editMode : false,
+            isLink : false,
+
+            linkTypes : ['Diversion', 'Return Flow'],
+
+            observe : {
+                ll : 'updateLL',
+                'properties.type' : 'redrawMarker',
+                links : 'redraw',
+                'properties.prmname' : 'onPrmUpdate',
+                'selectedLink.index' : 'updateSelected'
+            },
+
+            ready : function() {
+                Polymer.whenPolymerReady(function(){
+                    this.ds = document.querySelector('html /deep/ cwn-datastore');
+                }.bind(this));
+            },
+
+            reset : function() {
+                if( this.marker ) this.map.removeLayer(this.marker);
+                for( var i = 0; i < this.connected.markers.length; i++ ) {
+                    this.map.removeLayer(this.connected.markers[i]);
+                }
+                for( var i = 0; i < this.connected.lines.length; i++ ) {
+                    this.map.removeLayer(this.connected.lines[i]);
+                }
+                this.connected = {
+                    markers : [],
+                    lines : []
+                };
+                this.orgLL = null;
+                this.ll = null;
+                this.links = [];
+
+                this.selectedLink = {
+                    index : 0,
+                    value : {}
+                };
+
+                this.properties = {
+                    prmname : '',
+                    type : '',
+                    origins : [],
+                    terminals : []
+                };
+            },
+
+            resetLL : function() {
+                this.ll = this.orgLL;
+            },
+
+            editNode : function(node) {
+                this.reset();
+                this.editMode = true;
+
+                this.originalPrmname = node.properties.prmname;
+                this.properties = node.properties;
+
+                if( this.linkTypes.indexOf(this.properties.type) > -1 ) {
+                    debugger;
+                    this.isLink = true;
+                    //this.ll = node.geometry.coordinates;
+                    this.links.push(node);
+
+                    this._verifyCoordinates(node, node.properties.origin, node.properties.terminus);
+                    return;
+
+                } else {
+                    this.ll = L.latLng(node.geometry.coordinates[1], node.geometry.coordinates[0]);
+                    this.orgLL = this.ll;
+
+                    // add link markers
+                    if( this.properties.origins ) {
+                        for( var i = 0; i < this.properties.origins.length; i++ ) {
+                            var link = this._lookupLink(this.properties.origins[i], this.properties.prmname);
+                            
+                            if( link ) {
+                                this._verifyCoordinates(link, node, this.properties.origins[i]);
+                                link.properties._isOrigin = true;
+                                this.links.push(link);
+                            }
+                        }
+                    }
+                    if( this.properties.terminals ) {
+                        for( var i = 0; i < this.properties.terminals.length; i++ ) {
+                            var link = this._lookupLink(this.properties.prmname, this.properties.terminals[i]);
+                            
+                            if( link ) {
+                                this._verifyCoordinates(link, this.properties.terminals[i], node);
+                                this.links.push(link);
+                            }
+                        }
+                    }
+
+                    this.isLink = false;
+                }
+            },
+
+            // given a link, make sure the origin and terminal coordinates go as follows:
+            // link.geometry.coordinates = [origin, terminal];
+            _verifyCoordinates : function(link, origin, terminal) {
+                if( typeof link == 'string' ) {
+                    link = this.ds.lookupMap[link];
+                    if( !link ) return false;
+                }
+                if( typeof origin == 'string' ) {
+                    origin = this.ds.lookupMap[origin];
+                    if( !origin ) return false;
+                }
+                if( typeof terminal == 'string' ) {
+                    terminal = this.ds.lookupMap[terminal];
+                    if( !terminal ) return false;
+                }
+
+                link.geometry.coordinates = [
+                    [origin.geometry.coordinates[0], origin.geometry.coordinates[1]],
+                    [terminal.geometry.coordinates[0], terminal.geometry.coordinates[1]]
+                ];
+                return true;
+            },
+
+            // find a link based on origin and terminal
+            _lookupLink : function(origin, terminal) {
+                debugger;
+                var links = this.ds.originLookupMap[origin];
+                if( !links ) return null
+
+                for( var i = 0; i < links.length; i++ ) {
+                    if( links[i].properties.terminus == terminal ) return links[i];
+                }
+                return null;
+            },
+
+            onPrmUpdate : function() {
+                debugger;
+                this.isValidName = true;
+                if( !this.editMode && ds.lookupMap[this.properties.prmname] ) {
+                    this.isValidName = false;
+                } else if ( this.editMode && 
+                    ds.lookupMap[this.properties.prmname] && 
+                    this.properties.prmname != this.originalPrmname ) {
+
+                    this.isValidName = false;
+                }
+
+                this.updateLinkNames();
+            },
+
+            onShow : function(node) {
+                debugger;
+                if( !this.init ) {
+                    this.init = true;
+
+                    this.async(function(){
+                        this.map = L.map(this.$.leaflet).setView([40, -121], 5); 
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            maxZoom: 18
+                        }).addTo(this.map);
+                        this.map.on('click', this.onClick.bind(this));
+
+                        if( node ) this.editNode(node);
+                    });
+
+                    for( var key in CWN.render ) {
+                        if( key[0] != '_' && this.linkTypes.indexOf(key) == -1 ) this.types.push(key);
+                    }
+                    if( !node ) this.properties.type = this.types[0];
+                } else if ( node ) {
+                    this.editNode(node);
+                }
+            },
+
+            onLinkSelect : function(e) {
+                debugger;
+                var node = this.ds.lookupMap[e.detail];
+                if( !node ) return alert('Error finding node');
+
+                var link = {
+                    type : 'Feature',
+                    geometry : {
+                        type : 'LineString',
+                        coordinates : [
+                            [this.ll.lng, this.ll.lat],
+                            [node.geometry.coordinates[0], node.geometry.coordinates[1]]
+                        ]
+                    },
+                    properties : {
+                        description : 'No description set',
+                        _isOrigin    : true,
+                        origin      : this.properties.prmname,
+                        terminus    : node.properties.prmname, 
+                        prmname     : this.properties.prmname+'-'+node.properties.prmname,
+                        type        : 'Diversion'
+                    }
+                };
+
+                this.links.push(link);
+                this.resetOriginsTerminals();
+                this.async(this.updateSelected);
+            },
+
+            updateLinkNames : function() {
+                if( this.isLink ) return;
+
+                debugger;
+                for( var i = 0; i < this.links.length; i++ ) {
+                    var l = this.links[i];
+                    if( l.properties._isOrigin ) {
+                        l.properties.terminus = this.properties.prmname;
+                    } else {
+                        l.properties.origin = this.properties.prmname;
+                    }
+                    l.properties.prmname = l.properties.origin+'-'+l.properties.terminus;
+                }
+                this.resetOriginsTerminals();
+            },
+
+            updateSelected : function() {
+                debugger;
+                this.selectedLink.value = this.links[parseInt(this.selectedLink.index)];
+            },
+
+            resetOriginsTerminals : function() {
+                debugger;
+                this.properties.origins = [];
+                this.properties.terminals = [];
+
+                for( var i = 0; i < this.links.length; i++ ) {
+                    if( this.links[i].properties._isOrigin ) {
+                        this.properties.terminals.push(this.links[i].properties.prmname);
+                    } else {
+                        this.properties.origins.push(this.links[i].properties.prmname);
+                    }
+                }
+            },
+
+            onClick : function(e) {
+                debugger;
+                if( this.isLink) return;
+                this.ll = e.latlng;
+            },
+
+            updateLL : function() {
+                debugger;
+                if( !this.isLink ) {
+                    for( var i = 0; i < this.links.length; i++ ) {
+                        if( this.links[i].properties._isOrigin ) {
+                            this.links[i].geometry.coordinates[0] = [this.ll.lng, this.ll.lat];
+                        } else {
+                            this.links[i].geometry.coordinates[1] = [this.ll.lng, this.ll.lat];
+                        }
+                    }
+                }
+
+                this.redraw();
+            },
+
+            redraw : function() {
+                this.redrawLines();
+                this.redrawMarker();
+            },
+
+            redrawMarker : function() {
+                debugger;
+                if( !this.ll || !this.properties.type ) return;
+
+                if( this.marker ) this.map.removeLayer(this.marker);
+                if( this.isLink ) return;
+
+                var options = {
+                    iconSize : new L.Point(25, 25),
+                    type : this.properties.type
+                };
+
+                this.marker = new L.Marker(this.ll, {
+                    icon: new L.Icon.Canvas(options), 
+                    opacity: 1
+                });
+
+                this.marker.addTo(this.map);
+            },
+
+            redrawLines : function() {
+                debugger;
+                for( var i = 0; i < this.connected.markers.length; i++ ) {
+                    this.map.removeLayer(this.connected.markers[i]);
+                }
+                for( var i = 0; i < this.connected.lines.length; i++ ) {
+                    this.map.removeLayer(this.connected.lines[i]);
+                }
+
+                this.connected = {
+                    markers : [],
+                    lines : []
+                }
+
+                // if a link just add link, origin and terminus
+                if( this.isLink ) {
+                    var line = this._flipLineCoord(this.links[0].geometry.coordinates);
+
+                    if( line[0][0] === undefined || line[1][0] == undefined ) {
+                        return alert('Badness in node-editor.redraw()   :(');
+                    }
+
+                    var polyline = L.polyline(line).addTo(this.map);
+                    this.connected.lines.push(polyline);
+
+                    var t = ['terminus', 'origin'];
+                    for( var i = 0; i < t.length; i++ ) {
+                        if( this.properties[t[i]] && this.ds.lookupMap[this.properties[t[i]]] ) {
+                            var n = this.ds.lookupMap[this.properties[t[i]]];
+
+                            var options = {
+                                iconSize : new L.Point(25, 25),
+                                type : n.properties.type
+                            };
+
+                            var marker = new L.Marker(this._flipLL(n.geometry.coordinates), {
+                                icon: new L.Icon.Canvas(options), 
+                                opacity: .5
+                            });
+                            marker.addTo(this.map);
+
+                            this.connected.markers.push(marker);
+                        }
+                    }
+
+                    return;
+                }
+
+                for( var i = 0; i < this.links.length; i++ ) {
+                    var polyline = L.polyline(
+                        //this.links[i].geometry.coordinates
+                        this._flipLineCoord(this.links[i].geometry.coordinates)
+                    ).addTo(this.map);
+                    this.connected.lines.push(polyline);
+
+                    var connectedPrmname;
+                    if( this.links[i].properties.origin == this.properties.prmname ) {
+                        connectedPrmname = this.links[i].properties.terminus;
+                    } else {
+                        connectedPrmname = this.links[i].properties.origin;
+                    }
+
+                    var n = this.ds.lookupMap[connectedPrmname];
+                    if( !n ) continue;
+
+                    var options = {
+                        iconSize : new L.Point(25, 25),
+                        type : n.properties.type
+                    };
+
+                    var marker = new L.Marker(this._flipLL(n.geometry.coordinates), {
+                        icon: new L.Icon.Canvas(options), 
+                        opacity: .5
+                    });
+                    marker.addTo(this.map);
+
+                    this.connected.markers.push(marker);
+                }
+            },
+
+            removeLink : function(e) {
+                var index = this.links.indexOf(e.currentTarget.link);
+                if( index > -1 ) this.links.splice(index, 1);
+                this.resetOriginsTerminals();
+                this.updateSelected();
+            },
+
+            save : function() {
+                if( this.isLink ) {
+
+                } else {
+                    this.saveNode();
+                }
+            },
+
+            saveNode : function() {
+                if( !this.editMode ) {
+                    if( this.fs.existsSync(this.rootDir+'/data/nodes/'+CWN.fs.getFolderName(this.properties.prmname)) ) {
+                        return alert('Invalid PRMNAME: '+this.properties.prmname);
+                    }
+
+                    for( var i = 0; i < this.links.length; i++ ) {
+                        if( this.fs.existsSync(this.rootDir+'/data/links/'+CWN.fs.getFolderName(this.links[i].properties.prmname)) ) {
+                            return alert('Invalid PRMNAME: '+this.links[i].properties.prmname);
+                        }
+                    }
+                }
+                
+
+                var data = [];
+                var node = {
+                    type : 'Feature',
+                    geometry : {
+                        type : 'Point',
+                        coordinates : [this.ll.lng, this.ll.lat],
+                    },
+                    properties : this.properties
+                };
+                data.push(node);
+
+                for( var i = 0; i < this.links.length; i++ ) {
+                    // clean up, the lat/lng are switch... grrrr
+                    //this.links[i].geometry.coordinates[0] = this._flipLL(this.links[i].geometry.coordinates[0]);
+                    //this.links[i].geometry.coordinates[1] = this._flipLL(this.links[i].geometry.coordinates[1]);
+
+                    data.push(this.links[i]); 
+                }
+
+                CWN.fs.addUpdate(data, function() {
+                    this.ds._processNode(node);
+                    for( var i = 0; i < this.links.length; i++ ) {
+                        this.ds._processLink(this.links[i]);
+                    }
+
+                    alert('Success!');
+                    this.reset();
+                    window.location = '#map';
+                    document.querySelector('html /deep/ cwn-map').update();
+                }.bind(this));                    
+            },
+
+            _flipLL : function(ll) {
+                return [ll[1], ll[0]];
+            },
+
+            _flipLineCoord : function(coord) {
+                return [this._flipLL(coord[0]), this._flipLL(coord[1])]
+            }
+
+        });
+    </script>
+</polymer-element>

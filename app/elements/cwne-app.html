@@ -7,8 +7,11 @@
                 on-invalid-dir="{{onInvalidDir}}">
             </cwne-repo-config>
             <cwn-app hidden?="{{page != 'network'}}" islocal></cwn-app>
-            <cwne-edit-node id="edit" hidden?="{{page != 'edit'}}"></cwne-edit-node>
-            <cwne-add-node id="add" hidden?="{{page != 'add'}}"></cwne-add-node>
+            <cwne-node-editor 
+                id="edit" 
+                hidden?="{{page != 'edit' && page != 'add'}}" 
+                editMode?="{{page == 'edit'}}">
+            </cwne-node-editor>
         </cwne-layout>
     </template>
     <script>
@@ -21,10 +24,13 @@
             Polymer('cwne-app', {
                 page : '',
                 networkLoader : null,
+                ds : null,
 
                 ready : function() {
                     this.networkLoader = document.querySelector('cwne-fs-network-loader');
                     window.location = '#';
+
+                    this.ds = document.querySelector('html /deep/ cwn-datastore');
 
                     $(window).on('hashchange', this.setPage.bind(this));
                     this.setPage();
@@ -51,10 +57,10 @@
                 onDirSelect : function(e) {
                     // set the root directory for the local network loader
                     this.networkLoader.rootDir = e.detail;
-                    this.$.add.rootDir = e.detail;
+                    //this.$.add.rootDir = e.detail;
 
                     // poke the datastore to load;
-                    this.shadowRoot.querySelector('cwn-app /deep/ cwn-datastore').init();
+                    this.ds.init();
 
                     window.location = '#map';
                     this.$.layout.showNetwork = true;
@@ -72,10 +78,16 @@
                         this.page = 'network';
                     } else if( loc == 'edit' ) {
                         this.page = 'edit';
-                        this.$.edit.prmname = window.location.hash.split('/')[1];
+
+                        var prmname = window.location.hash.split('/')[1];
+                        if( this.ds.lookupMap[prmname] ) {
+                            this.$.edit.onShow(this.ds.lookupMap[prmname]);
+                        } else {
+                            alert('Invalid prmname: '+prmname);
+                        }
                     } else if( loc == 'add' ) {
                         this.page = 'add';
-                        this.$.add.onShow();
+                        this.$.edit.onShow();
                     }
                 }
             });
