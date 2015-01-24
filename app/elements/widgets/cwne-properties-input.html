@@ -1,0 +1,110 @@
+<polymer-element name="cwne-properties-input" attributes="properties">
+    <template>
+
+        <h4>Other Properties</h4>
+        <div class="alert alert-info" hidden?="{{propList.length > 0}}">
+            No additional properties.
+        </div>
+
+        <table class="table">
+            <tr template repeat="{{prop, i in propList}}">
+                <td><input type="text" value="{{prop.name}}" orginalName="{{prop.name}}" class="form-control" /></td>
+                <td>
+                    <template bind if="{{prop.type == 'string'}}">
+                        <input type="text" value="{{prop.value}}" class="form-control" />
+                    </template>
+                    <template bind if="{{prop.type == 'object'}}">
+                        <juicy-jsoneditor json="{{prop.value}}" modes="['text', 'tree']" style="height: 200px"></juicy-jsoneditor>
+                    </template>
+                    <template bind if="{{prop.type == '$ref'}}">
+                        Reference Data <a class="btn btn-link"><cwn-icon icon="fa-pencil"></cwn-icon> Edit</a>
+                    </template>
+                </td>
+                <td>
+                    <a class="btn btn-danger" on-click="{{delete}}" index="{{i}}"><cwn-icon icon="fa-trash"></cwn-icon></a>
+                </td>
+            </tr>
+        </table>
+
+        <div>
+            <table class="table">
+                <tr>
+                    <td><input type="text" id="newProp" class="form-control" style="max-width: 200px" /></td>
+                    <td>
+                        <select id="newPropType">
+                            <option value="string">String</option>
+                            <option value="object">Object</option>
+                            <option value="$ref">Reference</option>
+                        </select>
+                    </td>
+                    <td>
+                        <a class="btn btn-primary" on-click="{{addProp}}"><cwn-icon icon="fa-plus"></cwn-icon> Add</a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+    </template>
+    <script>
+        Polymer('cwne-properties-input', {
+            blacklist : ['origin', 'terminus', 'origins', 'terminals', 'type', 'prmname', 'description'],
+
+            properties : {},
+            propList : [],
+
+            observe : {
+                properties : 'update'
+            },
+
+            update : function() {
+                this.propList = [];
+                for( var key in this.properties ) {
+                    if( this.blacklist.indexOf(key) > -1 ) continue;
+                    if( key.length > 0 && key[0] == '_' ) continue;
+                    if( this.properties[key] === null ) continue;
+
+                    this.propList.push({
+                        name : key,
+                        value : this.properties[key],
+                        type : this._getType(this.properties[key])
+                    });
+                }
+            },
+
+            _getType : function(obj) {
+                if( typeof obj == 'object' ) {
+                    if( obj && obj.$ref !== undefined ) return '$ref';
+                    return 'object';
+                }
+
+                return 'string';
+            },
+
+            addProp : function() {
+                var key = this.$.newProp.value;
+                var type = this.$.newPropType.value;
+                if( this.blacklist.indexOf('key') > -1) {
+                    return alert('Invalid property name: '+key);
+                }
+
+                var val = '';
+                if( type == 'object' ) val = {};
+                else if ( type == 'ref' ) val = {'$ref': key};
+
+                this.properties[key] = val;
+
+                this.$.newProp.value = '';
+                this.$.newPropType.value = 'string';
+                this.update();
+            },
+
+            delete : function(e) {
+                var index = parseInt(e.currentTarget.getAttribute('index'));
+                var val = this.propList.splice(index, 1);
+                delete this.properties[val[0].name];
+            }
+
+
+        });
+    </script>
+</polymer-element>

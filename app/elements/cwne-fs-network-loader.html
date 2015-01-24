@@ -11,7 +11,10 @@
 
                     if( !this.rootDir ) return;
 
-                    var data = {
+                    CWN.fs.init(this.rootDir);
+                    callback(CWN.fs.load());
+
+                    /*var data = {
                         nodes : [],
                         links : []
                     };
@@ -38,7 +41,7 @@
                         data.links.push(link);
                     }
 
-                    callback(data);
+                    callback(data);*/
                 }
             });
         })();

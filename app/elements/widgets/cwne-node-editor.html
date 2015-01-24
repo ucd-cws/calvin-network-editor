@@ -84,7 +84,15 @@
                         </template>
                     </td>
                 </tr>
+                <tr>
+                    <td>Description</td>
+                    <td>
+                        <input type="text" class="form-control" value="{{properties.description}}" />
+                    </td>
+                </tr>
             </table>
+
+            <cwne-properties-input properties="{{properties}}"></cwne-properties-input>
 
             <div hidden?="{{!ll || isLink}}">
                 <h4 class="page-header">Add/Remove Links</h5>
@@ -237,7 +245,7 @@
                 this.properties = node.properties;
 
                 if( this.linkTypes.indexOf(this.properties.type) > -1 ) {
-                    debugger;
+                    
                     this.isLink = true;
                     //this.ll = node.geometry.coordinates;
                     this.links.push(node);
@@ -301,7 +309,7 @@
 
             // find a link based on origin and terminal
             _lookupLink : function(origin, terminal) {
-                debugger;
+                
                 var links = this.ds.originLookupMap[origin];
                 if( !links ) return null
 
@@ -312,7 +320,7 @@
             },
 
             onPrmUpdate : function() {
-                debugger;
+                
                 this.isValidName = true;
                 if( !this.editMode && ds.lookupMap[this.properties.prmname] ) {
                     this.isValidName = false;
@@ -327,7 +335,7 @@
             },
 
             onShow : function(node) {
-                debugger;
+                
                 if( !this.init ) {
                     this.init = true;
 
@@ -351,7 +359,7 @@
             },
 
             onLinkSelect : function(e) {
-                debugger;
+                
                 var node = this.ds.lookupMap[e.detail];
                 if( !node ) return alert('Error finding node');
 
@@ -382,7 +390,7 @@
             updateLinkNames : function() {
                 if( this.isLink ) return;
 
-                debugger;
+                
                 for( var i = 0; i < this.links.length; i++ ) {
                     var l = this.links[i];
                     if( l.properties._isOrigin ) {
@@ -396,12 +404,12 @@
             },
 
             updateSelected : function() {
-                debugger;
+                
                 this.selectedLink.value = this.links[parseInt(this.selectedLink.index)];
             },
 
             resetOriginsTerminals : function() {
-                debugger;
+                
                 this.properties.origins = [];
                 this.properties.terminals = [];
 
@@ -415,13 +423,13 @@
             },
 
             onClick : function(e) {
-                debugger;
+                
                 if( this.isLink) return;
                 this.ll = e.latlng;
             },
 
             updateLL : function() {
-                debugger;
+                
                 if( !this.isLink ) {
                     for( var i = 0; i < this.links.length; i++ ) {
                         if( this.links[i].properties._isOrigin ) {
@@ -441,7 +449,7 @@
             },
 
             redrawMarker : function() {
-                debugger;
+                
                 if( !this.ll || !this.properties.type ) return;
 
                 if( this.marker ) this.map.removeLayer(this.marker);
@@ -461,7 +469,7 @@
             },
 
             redrawLines : function() {
-                debugger;
+                
                 for( var i = 0; i < this.connected.markers.length; i++ ) {
                     this.map.removeLayer(this.connected.markers[i]);
                 }

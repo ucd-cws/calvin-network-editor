@@ -310,6 +310,7 @@ CWN.fs = (function(){
     } 
 
     return {
+        load : load,
         getFolderName : getFolderName,
         init : init,
         addUpdate : addUpdate
