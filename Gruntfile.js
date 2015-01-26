@@ -257,11 +257,27 @@ module.exports = function (grunt) {
                     stderr: true
                 },
                 command: '.\\node_modules\\nodewebkit\\nodewebkit\\nw.exe app'
+            },
+            expand : {
+                dir : '',
+                prmname : '', 
+                options: {
+                    stdout: true,
+                    stderr: true
+                },
+                command: 'node scripts/expand.js <%= shell.expand.dir %> <%= shell.expand.prmname %>'
             }
         }
     });
 
-    grunt.registerTask('run', 'Detect OS and run different task based on it', function() {
+    grunt.task.registerTask('expand', 'Given a repo dir and prmname, expand a node', function() {
+        grunt.config.set('shell.expand.dir', grunt.option('dir'));
+        grunt.config.set('shell.expand.prmname', grunt.option('prmname'));
+
+        grunt.task.run('shell:expand');
+    });
+
+    grunt.registerTask('run', 'Run node webkit app based on OS', function() {
         var tasks = grunt.config('shell');
         console.log(process.platform);
         if (/win32/.test(process.platform) ) {

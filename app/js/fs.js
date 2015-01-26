@@ -1,11 +1,16 @@
 /* handles adding, updating and removing nodes / links */
-if( !window.CWN ) window.CWN = {};
+if( !this.CWN ) this.CWN = {};
 
-CWN.fs = (function(){
-    var fs = requireNode('fs');
-    var async = requireNode('async');
-    var csvParse = requireNode('csv-parse');
-    var csvStringify = requireNode('csv-stringify');
+this.CWN.fs = (function(){
+
+    var _;
+    if( typeof requireNode === 'undefined') _ = require; 
+    else _ = requireNode;
+
+    var fs = _('fs');
+    var async = _('async');
+    var csvParse = _('csv-parse');
+    var csvStringify = _('csv-stringify');
 
     var linkTypes = ['Diversion', 'Return Flow'];
 
@@ -153,6 +158,7 @@ CWN.fs = (function(){
         // were process. useful for knowing what to delete (ie, what files on)
         // disk are no longer part of the node/link.
         var processed = [];
+        var removeRef = false;
 
         function checkDone() {
             if( crawled && loading == 0 ) callback(processed);
@@ -168,9 +174,19 @@ CWN.fs = (function(){
             loading++;
         }
 
-        function setLoaded() {
+        function setLoaded(parent, pkey, obj, data) {
+            if( removeRef && parent ) {
+                parent[pkey] = data;
+            } else if ( parent ) {
+                obj.data = data;
+            }
+
             loading--;
             checkDone();
+        }
+
+        function setRemoveRef(rRef) {
+            removeRef = rRef;
         }
 
         function setRemoveData(remove) {
@@ -182,6 +198,7 @@ CWN.fs = (function(){
         }
 
         return {
+            setRemoveRef : setRemoveRef,
             setCrawled : setCrawled,
             setLoading : setLoading,
             setLoaded  : setLoaded,
@@ -193,11 +210,18 @@ CWN.fs = (function(){
     /*
         given a geojson load and data that contains $ref
     */
-    function loadRefs(geojson, callback) {
+    function loadRefs(geojson, removeRefs, callback) {
+        if( typeof removeRefs == 'function' ) {
+            callback = removeRefs;
+            removeRefs = true;
+        }
+
         var rootDir = geojson.properties._file.replace(/(link|node)\.geojson/,'');
 
         var handler = new RefHandler(callback);
-        _crawlRefs(geojson.properties, rootDir, handler, 'load');
+        handler.setRemoveRef(removeRefs);
+
+        _crawlRefs(geojson, 'properties', rootDir, handler, 'load');
         handler.setCrawled();
     }
 
@@ -212,7 +236,7 @@ CWN.fs = (function(){
         var handler = new RefHandler(callback);
         if( remove ) handler.setRemoveData(true);
 
-        _crawlRefs(geojson.properties, rootDir, handler, 'save');
+        _crawlRefs(geojson, 'properties', rootDir, handler, 'save');
         handler.setCrawled();
     }
 
@@ -220,21 +244,23 @@ CWN.fs = (function(){
         crawl an object for $ref, handler keeps track of crawl/load state,
         operation is load or save
     */
-    function _crawlRefs(obj, dir, handler, operation) {
+    function _crawlRefs(parent, pkey, dir, handler, operation) {
+        var obj = parent[pkey];
+
         if( Array.isArray(obj) ) {
             for( var i = 0; i < obj.length; i++ ) {
-                _crawlRefs(obj[i], dir, handler, operation);
+                _crawlRefs(obj, i, dir, handler, operation);
             }
             return;
         }
 
         for( var key in obj ) {
             if( key == '$ref' ) {
-                if( operation == 'load' ) _loadRef(obj, dir, handler);
-                else if ( operation == 'save' ) _saveRef(obj, dir, handler)
+                if( operation == 'load' ) _loadRef(parent, pkey, obj, dir, handler);
+                else if ( operation == 'save' ) _saveRef(obj[key], dir, handler)
             
             } else if ( typeof obj[key] == 'object' ) {
-                _crawlRefs(obj[key], dir, handler, operation);
+                _crawlRefs(obj, key, dir, handler, operation);
             }
         }
     }
@@ -242,24 +268,28 @@ CWN.fs = (function(){
     /*
         load a object that has $ref, handler keeps track of overall load/crawl state
     */
-    function _loadRef(obj, dir, handler) {
+    function _loadRef(parent, pkey, obj, dir, handler) {
         var file = dir+obj.$ref;
 
         if( !fs.existsSync(file) ) {
             console.log('Attempting to load missing $ref: '+file);
             return;
         }
-        
+
+
         handler.setLoading(obj.$ref);
-        fs.readFile(file, function(data){
+        fs.readFile(file, function(err, data){
 
             if( obj.$ref.match(/\.csv$/) ) {
                 try {
                     csvParse(data, {comment: '#'}, function(err, output) {
-                        handler.setLoaded();
-                        if( err ) return console.log(err);
-                        obj.data = output;
-
+                        if( err ) {
+                            console.log(err);
+                            handler.setLoaded();
+                            return
+                        }
+                        
+                        handler.setLoaded(parent, pkey, obj, output);
                     });
                 } catch(e) {
                     handler.setLoaded();
@@ -267,8 +297,7 @@ CWN.fs = (function(){
                 }
 
             } else {
-                obj.data = data;
-                handler.setLoaded();
+                handler.setLoaded(parent, pkey, obj, output);
             }
         });
     }
@@ -313,7 +342,13 @@ CWN.fs = (function(){
         load : load,
         getFolderName : getFolderName,
         init : init,
-        addUpdate : addUpdate
+        addUpdate : addUpdate,
+        loadRefs : loadRefs
     }
 
 })();
+
+/* for node.js */
+if( typeof module !== 'undefined' && module.exports ) {
+    exports.fs = this.CWN.fs;
+}
