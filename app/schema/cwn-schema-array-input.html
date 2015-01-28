@@ -1,0 +1,104 @@
+<polymer-element name="cwn-schema-input" attributes="schema data key" noscript>
+    <template>
+        <style>
+            :host {
+                display: block;
+                margin-bottom: 10px;
+            }
+            .help {
+                color: #888;
+                padding: 5px;
+            }
+        </style>
+
+        <div layout horizontal>
+            <div>
+                <div>{{key}}</div>
+                <div>{{schema.title}}</div>
+            </div>
+            <div> 
+                <button on-click="{{add}}">Add</button>
+
+                <template repeat="{{value, i in data[key]}}">
+                    <template bind if="{{arrayOfArrays}}">
+                        <div layout horizontal>
+                            <template repeat="{{subValue, j in value}}">
+                                <div layout horizontal>
+                                    <cwn-schema-input 
+                                        data="{{value}}" 
+                                        key="{{j}}" 
+                                        schema="{{schema.items[j]}}">
+                                    </cwn-schema-input>
+
+                                    <div><a>-</a></div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <template bind if="{{!arrayOfArrays}}">
+                        <div layout horizontal>
+                            <cwn-schema-input 
+                                data="{{data[key]}}" 
+                                key="{{i}}" 
+                                schema="{{schema.items}}">
+                            </cwn-schema-input>
+                        
+                            <div><a>-</a></div>
+                        </div>
+                    </template>
+                </template>
+            </div>
+        </div>
+        <div class="help">{{schema.description}}</div>
+    </template>
+    <script>
+        Polymer('cwn-schema-input', {
+            schema : {},
+            data : {},
+            key : '',
+            arrayOfArrays : false,
+
+            observe : {
+                schema : 'onSchemaChange',
+                data : 'onChange'
+            },
+
+            onChange : function() {
+                if( !data[key] === undefined ) data[key] = [];
+                if( !Array.isArray(data[key]) ) data[key] = [];
+            },
+
+            onSchemaChange : function() {
+                if( !schema.items ) return;
+
+                if( Array.isArray(schema.items) ) {
+                    this.arrayOfArrays = true;
+
+                    for( var i = 0; i < schema.items.length; i++ ) {
+                        if( !schema.items[i].$ref ) continue;
+
+                        schema.items[i] = CWN.schemaEditor.loadRef(schema.items[i].$ref, this.schema);
+                    }
+                } else if( schema.items.$ref ) {
+                    schema.items = CWN.schemaEditor.loadRef(schema.items.$ref, this.schema);
+                }
+            }
+
+            // note the child type should be corrected by the input element
+            add : function() {
+                if( this.arrayOfArrays ) {
+                    var arr = [];
+                    for( var i = 0; i < this.schema.items.length; i++ ) {
+                        arr.push('');
+                    }
+                    this.data[key].push('');
+                } else {
+                    this.data[key].push('');
+                }
+            }
+
+
+        });
+    </script>
+</polymer-element>

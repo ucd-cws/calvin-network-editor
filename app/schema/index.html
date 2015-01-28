@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>JSON Schema Editor</title>
+  <script>
+    process.on("uncaughtException", function(e) { 
+      debugger;
+      console.log(e); 
+    });
+  </script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+  <!-- build:js scripts/lib.js -->
+  <script src="../../../ca-water-network/app/components/webcomponentsjs/webcomponents.js"></script>
+  <script src="../../../ca-water-network/app/components/jquery/dist/jquery.js"></script> 
+  <!-- endbuild -->
+
+  <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+
+  <link rel="import" href="cwn-schema-editor.html" />
+
+  <!-- Add Refresh -->
+  <script>
+    $(window).on('keypress', function(e){
+      if( e.ctrlKey && e.which == 18 ) { // ctrl + r
+        window.location.reload();
+      } else if ( e.ctrlKey && e.which == 9 ) { // ctrl + i
+        requireNode('nw.gui').Window.get().showDevTools();
+      }
+    });
+  </script>
+
+</head>
+<body fullbleed>
+
+  <cwne-app></cwne-app>
+  <cwne-fs-network-loader></cwne-fs-network-loader>
+
+</body>
+</html>

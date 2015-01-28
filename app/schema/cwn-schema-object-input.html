@@ -1,0 +1,145 @@
+<polymer-element name="cwn-schema-object-input" attributes="rootDir file schema data">
+    <template>
+
+        <h4>{{schema.title}}</h4>
+        <h5>{{schema.description}}</h5>
+
+        <template bind if="{{error}}">
+            <div style="color:red">{{error}}</div>
+        </template>
+
+        <div>
+            <!-- each node will have propeties assigned locally -->
+            <template repeat="{{prop in properties}}">
+                <template bind if="{{prop.isComplex}}">
+                    <cwn-schema-element 
+                        rootDir="{{rootDir}}" 
+                        data="{{data}}"
+                        file="{{file}}"
+                        schema="{{schema}}">
+                    </cwn-schema-element>
+                </template>
+                <template bind if="{{!prop.isComplex}}">
+                    <cwn-schema-input 
+                        data="{{data}}"
+                        schema="{{prop.schema}}">
+                    </cwn-schema-input>
+                </template>
+            </template>
+
+            <!-- each node will have properties assigned by type -->
+            <template repeat="{{prop in typeProperties}}">
+                <template bind if="{{prop.isComplex}}">
+                    <cwn-schema-element 
+                        rootDir="{{rootDir}}" 
+                        data="{{data}}"
+                        file="{{file}}"
+                        schema="{{schema}}">
+                    </cwn-schema-element>
+                </template>
+                <template bind if="{{!prop.isComplex}}">
+                    <cwn-schema-input 
+                        data="{{data}}"
+                        schema="{{prop.schema}}">
+                    </cwn-schema-input>
+                </template>
+            </template>
+        </div>
+
+        
+        
+    </template>
+    <script>
+        (function(){
+            var fs = require('fs');
+
+            Polymer('cwn-schema-element', {
+                rootDir : '',
+                file : '',
+                schema : {},
+                
+                oneOf : {},
+                anyOf : {},
+
+ 
+
+                properties : [],
+
+                data : {},
+
+                error : '',
+
+                ready : function() {
+                    if( this.file ) {
+                        this.loadSchema();
+                    } 
+                    if( !this.schema ) return;
+                    
+                    this.inherit(this.schema);
+                },
+
+                loadSchema : function() {
+                    var file = this.rootDir+'/'+this.file;
+                    if( !fs.exsitsSync(file) ) {
+                        this.error = 'Schema file does not exsit: '+file;
+                        return;
+                    }
+
+                    var data = fs.readFileSync(file);
+                    this.schema = JSON.parse(data);
+                },
+
+                inherit : function(schema, from) {
+
+                    if ( schema.oneOf ) {
+
+                        for( var i = 0; i < schema.oneOf.length; i++ ) {
+                            this.processOneOf(schema.oneOf[i]));
+                        }
+                    } 
+
+                    if( schema.allOf ) {
+                        for( var i = 0; i < typeDef.allOf.length; i++ ) {
+                            this.processInherit(typeDef.allOf[i]);
+                        }
+                    } 
+
+                    if( schema.anyOf ) {
+                        for( var i = 0; i < schema.anyOf.length; i++ ) {
+                            this.processAnyOf(schema.anyOf[i]);
+                        }
+                    }
+
+                    if( schema.properties  ) {
+                        for( var key in this.schema.properties ) {
+                            this.processProperties(key, this.schema.properties.properties[key]);
+                        }
+                    }                    
+                },
+
+                processInherit : function(def) {
+                    if( typeDef.$ref ) {
+                        def = CWN.schemaEditor.loadRef(typeDef.$ref, this.schema);
+                    }
+                    this.inherit(def);
+                },
+
+                processProperty : function(key, typeDef) {
+                    if( typeDef.$ref ) {
+                        this.properties.push({
+                            key : key,
+                            schema : CWN.schemaEditor.loadRef(typeDef.$ref, this.schema);
+                        });
+                    } else {
+                        this.properties.push({
+                            key : key,
+                            schema : typeDef
+                        });
+                    }
+                }
+
+            });
+
+        })();
+    </script>
+</polymer-element>

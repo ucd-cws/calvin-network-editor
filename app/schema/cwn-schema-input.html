@@ -1,0 +1,15 @@
+<polymer-element name="cwn-schema-input" attributes="schema data key" noscript>
+    <template>
+        <!-- stamp out by schema type -->
+        <template bind if="{{schema.type == 'object'}}">
+            <cwn-schema-object-input schema="{{schema}}" data="{{data}}" key="{{key}}"></cwn-schema-object-input>
+        </template>
+        <template bind if="{{schema.type == 'array'}}">
+            <cwn-schema-array-input schema="{{schema}}" data="{{data}}" key="{{key}}"></cwn-schema-array-input>
+        </template>
+        <template bind if="{{schema.type != 'array' || schema.type != 'object'}}">
+            <cwn-schema-single-input schema="{{schema}}" data="{{data}}" key="{{key}}"></cwn-schema-single-input>
+        </template>
+
+    </template>
+</polymer-element>

@@ -1,0 +1,70 @@
+<polymer-element name="cwn-schema-editor" attributes="rootDir file">
+    <template>
+        <cwn-schema-element rootDir="{{rootDir}}" file="{{file}}" data="{{data}}">
+    </template>
+    <script>
+        (function(){
+            var fs = require('fs');
+
+            Polymer('cwn-schema-editor', {
+                rootDir : '',
+                file : '',
+                data : {}
+
+                observe : {
+                    rootDir : 'onRootDirChange'
+                },
+
+                onRootDirChange : function() {
+                    CWN.schemaEditor.rootDir = this.rootDir;
+                }
+
+            });
+
+            /** Add Global Helper Functions **/
+            if( !window.CWN ) window.CWN = {};
+            CWN.schemaEditor = {};
+
+            CWN.schemaEditor.loadRef = function(ref, schema) {
+                var parts = ref.split('#'), subSchema;
+
+                if( parts.length > 0 ) {
+                    subSchema = this.rootDir+'/'+parts[0];
+                    
+                    if( !fs.exsitsSync(subSchema) ) {
+                        return console.log('Cant find subSchema: '+subSchema);
+                    } else {
+                        subSchema = fs.readFileSync(subSchema);
+                        subSchema = JSON.parse(subSchema);
+                    }
+                } else {
+                    subSchema = schema;
+                }
+
+                if( parts.length > 1 ) {
+                    parts = parts[1].split('/');
+                    subSchema = this.loadLocalRef(0, parts, subSchema);
+                }
+
+                return subSchema;
+            };
+
+            CWN.schemaEditor.loadLocalRef = function(index, parts, subSchema) {
+                if( index == parts.length - 1 ) {
+                    return subSchema[parts[index]];
+                } else if ( subSchema[parts[index]] !== undefined ) {
+                    subSchema = subSchema[parts[index]]
+                    index++;
+                    return this.loadLocalRef(index, parts, subSchema);
+                } else {
+                    console.log('Error loading local ref: '+index+' ['+parts+']');
+                    return {};
+                }
+            };
+
+
+
+        })();
+
+    </script>
+</polymer-element>

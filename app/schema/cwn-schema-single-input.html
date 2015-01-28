@@ -1,0 +1,81 @@
+<polymer-element name="cwn-schema-single-input" attributes="data schema key">
+    <template>
+        <style>
+            :host {
+                display: block;
+                margin-bottom: 10px;
+            }
+            .help {
+                color: #888;
+                padding: 5px;
+            }
+        </style>
+
+        <div layout horizontal>
+            <div>
+                <div>{{key}}</div>
+                <div>{{schema.title}}</div>
+            </div>
+            <div>
+                <template bind if="{{schema.type == 'string'}}">
+                    <input type="text" value="{{data[key]}}" />
+                </template>
+
+                <template bind if="{{schema.type == 'enum'}}">
+                    <select value="{{data[key]}}">
+                        <template repeat="{{enum in schema.enum}}">
+                            <option value="{{enum}}" selected?="{{enum == data[key]}}">{{enum}}</option>
+                        </template>
+                    </select>
+                </template>
+                
+                <template bind if="{{schema.type == 'null'}}">
+                    null
+                </template>
+                
+                <template bind if="{{schema.unknown}}">
+                    {{schema.type}}: {{data[key]}}
+                </template>
+            </div>
+        </div>
+        <div class="help">{{schema.description}}</div>
+
+    </template>
+    <script>
+        Polymer('cwn-schema-single-input', {
+            data : '',
+            schema : {},
+            key : '',
+
+            observe : {
+                data : 'onChange',
+                schema : 'onChange'
+            },
+
+            onChange : function() {
+                if( !this.data || !this.schema ) return;
+
+                if( !this.schema.type && this.schema.enum ) {
+                    this.schema.type = 'enum';
+                } else if ( this.schema.type && typeof this.schema.type == 'object' && this.schema.type.enum ) {
+                    this.schema.enum = this.schema.type.enum;
+                    this.schema.type = 'enum'; 
+                }
+
+                if( this.schema.type == 'null' ) {
+                    this.data[this.key] = null;
+                } else if( this.schema.type == 'string' && 
+                    typeof this.data[this.key] != 'string' ) {
+
+                    this.data[this.key] = '';
+                } else if( this.schema.type == 'enum' && 
+                    typeof this.data[this.key] != 'string' ) {
+
+                    this.data[this.key] = '';   
+                } else {
+                    this.schema.unknown = true;
+                }
+            }
+        });
+    </script>
+</polymer-element>
