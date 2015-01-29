@@ -20,7 +20,13 @@
 
   <script type="text/javascript" src="https://www.google.com/jsapi"></script>
 
+  <link rel="import" href="../../../ca-water-network/app/components/polymer/polymer.html" />
   <link rel="import" href="cwn-schema-editor.html" />
+  <link rel="import" href="cwn-schema-array-input.html" />
+  <link rel="import" href="cwn-schema-input.html" />
+  <link rel="import" href="cwn-schema-object-input.html" />
+  <link rel="import" href="cwn-schema-single-input.html" />
+
 
   <!-- Add Refresh -->
   <script>
@@ -36,8 +42,8 @@
 </head>
 <body fullbleed>
 
-  <cwne-app></cwne-app>
-  <cwne-fs-network-loader></cwne-fs-network-loader>
+  
+  <cwn-schema-editor rootDir="/Users/jrmerz/dev/tmp/calvin-network-data/json-schema" file="node.json"></cwne-fs-network-loader>
 
 </body>
 </html>

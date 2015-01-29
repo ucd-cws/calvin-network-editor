@@ -1,15 +1,37 @@
-<polymer-element name="cwn-schema-input" attributes="schema data key" noscript>
+<polymer-element name="cwn-schema-input" attributes="schema data key parentSchema">
     <template>
+        <style>
+            :host {
+                display: block;
+                padding: 10px;
+                margin: 10px;
+                border: 1px solid #ccc;
+            }
+        </style>
+
+        <h4>{{key}}</h4>
+
         <!-- stamp out by schema type -->
         <template bind if="{{schema.type == 'object'}}">
-            <cwn-schema-object-input schema="{{schema}}" data="{{data}}" key="{{key}}"></cwn-schema-object-input>
+            <cwn-schema-object-input schema="{{schema}}" parentSchema="{{parentSchema}}" data="{{data}}" key="{{key}}"></cwn-schema-object-input>
         </template>
         <template bind if="{{schema.type == 'array'}}">
-            <cwn-schema-array-input schema="{{schema}}" data="{{data}}" key="{{key}}"></cwn-schema-array-input>
+            <cwn-schema-array-input schema="{{schema}}" parentSchema="{{parentSchema}}" data="{{data}}" key="{{key}}"></cwn-schema-array-input>
         </template>
-        <template bind if="{{schema.type != 'array' || schema.type != 'object'}}">
+        <template bind if="{{schema.type == 'reference'}}">
+            <a>External Reference Link</a>
+        </template>
+        <template bind if="{{schema.type != 'array' && schema.type != 'object' && schema.type != 'reference'}}">
             <cwn-schema-single-input schema="{{schema}}" data="{{data}}" key="{{key}}"></cwn-schema-single-input>
         </template>
 
     </template>
+    <script>
+        Polymer('cwn-schema-input', {
+            data : {},
+            key : '',
+            parentSchema : {},
+            schema : {},
+        });
+    </script>
 </polymer-element>

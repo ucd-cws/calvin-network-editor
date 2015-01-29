@@ -1,0 +1,11 @@
+{
+  "name": "Schema Editor",
+  "description": "Schema Editor",
+  "version": "0.0.1",
+  "main": "index.html",
+  "window": {
+    "toolbar": true,
+    "width": 900,
+    "height": 700
+  }
+}

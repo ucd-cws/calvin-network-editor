@@ -12,21 +12,26 @@
         </style>
 
         <div layout horizontal>
-            <div>
+            <div style="padding: 10px">
                 <div>{{key}}</div>
                 <div>{{schema.title}}</div>
             </div>
-            <div>
+            <div >
                 <template bind if="{{schema.type == 'string'}}">
                     <input type="text" value="{{data[key]}}" />
                 </template>
 
                 <template bind if="{{schema.type == 'enum'}}">
-                    <select value="{{data[key]}}">
-                        <template repeat="{{enum in schema.enum}}">
-                            <option value="{{enum}}" selected?="{{enum == data[key]}}">{{enum}}</option>
-                        </template>
-                    </select>
+                    <template bind if="{{schema.enum.length == 1}}">
+                        {{schema.enum[0]}}
+                    </template>
+                    <template bind if="{{schema.enum.length > 1}}">
+                        <select value="{{data[key]}}">
+                            <template repeat="{{enum in schema.enum}}">
+                                <option value="{{enum}}" selected?="{{enum == data[key]}}">{{enum}}</option>
+                            </template>
+                        </select>
+                    </template>
                 </template>
                 
                 <template bind if="{{schema.type == 'null'}}">
@@ -34,7 +39,8 @@
                 </template>
                 
                 <template bind if="{{schema.unknown}}">
-                    {{schema.type}}: {{data[key]}}
+                    <div>Unknown</div>
+                    <div>{{schema.type}}: {{data[key]}}</div>
                 </template>
             </div>
         </div>
@@ -46,6 +52,7 @@
             data : '',
             schema : {},
             key : '',
+
 
             observe : {
                 data : 'onChange',
@@ -60,9 +67,7 @@
                 } else if ( this.schema.type && typeof this.schema.type == 'object' && this.schema.type.enum ) {
                     this.schema.enum = this.schema.type.enum;
                     this.schema.type = 'enum'; 
-                }
-
-                if( this.schema.type == 'null' ) {
+                } else if( this.schema.type == 'null' ) {
                     this.data[this.key] = null;
                 } else if( this.schema.type == 'string' && 
                     typeof this.data[this.key] != 'string' ) {

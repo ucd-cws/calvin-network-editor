@@ -1,4 +1,4 @@
-<polymer-element name="cwn-schema-input" attributes="schema data key" noscript>
+<polymer-element name="cwn-schema-array-input" attributes="schema parentSchema data key">
     <template>
         <style>
             :host {
@@ -53,8 +53,9 @@
         <div class="help">{{schema.description}}</div>
     </template>
     <script>
-        Polymer('cwn-schema-input', {
+        Polymer('cwn-schema-array-input', {
             schema : {},
+            parentSchema : {},
             data : {},
             key : '',
             arrayOfArrays : false,
@@ -62,6 +63,12 @@
             observe : {
                 schema : 'onSchemaChange',
                 data : 'onChange'
+            },
+
+            ready : function() {
+                this.schema = {};
+                this.parentSchema = {};
+                this.data = {};
             },
 
             onChange : function() {
@@ -78,12 +85,12 @@
                     for( var i = 0; i < schema.items.length; i++ ) {
                         if( !schema.items[i].$ref ) continue;
 
-                        schema.items[i] = CWN.schemaEditor.loadRef(schema.items[i].$ref, this.schema);
+                        schema.items[i] = CWN.schemaEditor.loadRef(schema.items[i].$ref, this.schema, this.parentSchema);
                     }
                 } else if( schema.items.$ref ) {
-                    schema.items = CWN.schemaEditor.loadRef(schema.items.$ref, this.schema);
+                    schema.items = CWN.schemaEditor.loadRef(schema.items.$ref, this.schema, this.parentSchema);
                 }
-            }
+            },
 
             // note the child type should be corrected by the input element
             add : function() {

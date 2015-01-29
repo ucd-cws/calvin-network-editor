@@ -1,86 +1,131 @@
-<polymer-element name="cwn-schema-object-input" attributes="rootDir file schema data">
+<polymer-element name="cwn-schema-object-input" attributes="rootDir file schema data parentSchema">
     <template>
+        <style>
+            h4 {
+                margin: 4px 0 !important;
+            }
+            h5 {
+                margin: 3px 0 !important;
+            }
+
+            .debug {
+                background-color: #f8f8f8;
+                padding: 5px;
+                margin: 5px;
+                font-size: 11px;
+            }
+        </style>
 
         <h4>{{schema.title}}</h4>
         <h5>{{schema.description}}</h5>
+
+        <div class="debug">{{debug}}</div>
 
         <template bind if="{{error}}">
             <div style="color:red">{{error}}</div>
         </template>
 
-        <div>
-            <!-- each node will have propeties assigned locally -->
-            <template repeat="{{prop in properties}}">
-                <template bind if="{{prop.isComplex}}">
-                    <cwn-schema-element 
-                        rootDir="{{rootDir}}" 
-                        data="{{data}}"
-                        file="{{file}}"
-                        schema="{{schema}}">
-                    </cwn-schema-element>
-                </template>
-                <template bind if="{{!prop.isComplex}}">
-                    <cwn-schema-input 
-                        data="{{data}}"
-                        schema="{{prop.schema}}">
-                    </cwn-schema-input>
-                </template>
-            </template>
 
-            <!-- each node will have properties assigned by type -->
-            <template repeat="{{prop in typeProperties}}">
-                <template bind if="{{prop.isComplex}}">
-                    <cwn-schema-element 
-                        rootDir="{{rootDir}}" 
-                        data="{{data}}"
-                        file="{{file}}"
-                        schema="{{schema}}">
-                    </cwn-schema-element>
-                </template>
-                <template bind if="{{!prop.isComplex}}">
-                    <cwn-schema-input 
-                        data="{{data}}"
-                        schema="{{prop.schema}}">
-                    </cwn-schema-input>
-                </template>
-            </template>
-        </div>
+        <template bind if="{{oneOf.length > 0}}">
+            <div layout horizontal>
+                <h5>{{schema.title}} is of type:</h5>
+                <div>
+                    <select on-change="{{setOneOf}}">
+                        <template repeat="{{type, j in oneOf}}">
+                            <option value="{{j}}">{{type.title || type.type}}</option>
+                        </template>
+                    </select>
+                </div>
+            </div>
+        </template>
 
-        
+        <template repeat="{{item, i in objProperties}}">
+            <cwn-schema-input 
+                data="{{data}}"
+                key="{{item.key}}"
+                schema="{{item.schema}}"
+                parentSchema="{{item.parentSchema}}">
+            </cwn-schema-input>
+        </template>
+
+        <template repeat="{{c in custom}}">
+            <div layout horizontal>
+                <div>
+                    <button>Add {{c.schema.title || c.schema.type}}</button>
+                </div>
+                <div>
+                    Name: <input type="text" />
+                </div>
+            </div>
+
+            <template repeat="{{data in c.data}}">
+                <div layout horizontal>
+                    <div>
+                        Name: <input type="text" />
+                    </div>
+                    <div>
+                        <cwn-schema-input 
+                            data="{{data.value}}"
+                            key="{{data.key}}"
+                            schema="{{c.schema}}"
+                            parentSchema="{{schema}}">
+                        </cwn-schema-input>
+                    </div>
+                </div>
+            </template>
+            
+        </template>
         
     </template>
     <script>
         (function(){
             var fs = require('fs');
 
-            Polymer('cwn-schema-element', {
+            Polymer('cwn-schema-object-input', {
                 rootDir : '',
                 file : '',
                 schema : {},
+                parentSchema : {},
                 
-                oneOf : {},
-                anyOf : {},
+                oneOf : [],
+                oneOfSelected : -1,
+                anyOf : [],
+                custom : [],
 
- 
+                // array of inherited refrences
+                isA : [],
 
-                properties : [],
+                objProperties : [],
 
                 data : {},
 
                 error : '',
+                debug : '',
 
                 ready : function() {
-                    if( this.file ) {
-                        this.loadSchema();
-                    } 
-                    if( !this.schema ) return;
-                    
-                    this.inherit(this.schema);
+                    this.oneOf = [];
+                    this.anyOf = [];
+                    this.isA = [];
+                    this.objProperties = [];
+                    this.custom = [];
+                },
+
+                attached : function() {
+                    this.async(function(){
+                        if( this.file ) {
+                            this.loadSchema();
+                        } 
+                        if( !this.schema ) return;
+                        
+                        this.debug = JSON.stringify(this.schema);
+
+                        this.inherit(this.schema, true);
+                    });
                 },
 
                 loadSchema : function() {
                     var file = this.rootDir+'/'+this.file;
-                    if( !fs.exsitsSync(file) ) {
+                    if( !fs.existsSync(file) ) {
                         this.error = 'Schema file does not exsit: '+file;
                         return;
                     }
@@ -89,53 +134,114 @@
                     this.schema = JSON.parse(data);
                 },
 
-                inherit : function(schema, from) {
+                inherit : function(schema, root) {
 
-                    if ( schema.oneOf ) {
-
-                        for( var i = 0; i < schema.oneOf.length; i++ ) {
-                            this.processOneOf(schema.oneOf[i]));
+                    if( schema.properties  ) {
+                        for( var key in schema.properties ) {
+                            this.processProperty(key, schema.properties[key]);
                         }
+                    }
+
+                    if( schema.anyOf ) {
+                        var arr = [];
+                        for( var i = 0; i < schema.anyOf.length; i++ ) {
+                            arr.push(this.processOneOrAnyOf(schema.anyOf[i]));
+                        }
+                        this.anyOf.push(arr);
+                    }
+
+                    if( schema.oneOf && root && this.oneOfSelected == -1) {
+                        for( var i = 0; i < schema.oneOf.length; i++ ) {
+                            this.oneOf.push(this.processOneOrAnyOf(schema.oneOf[i]));
+                        }
+                        this.oneOfSelected = 0;
                     } 
 
                     if( schema.allOf ) {
-                        for( var i = 0; i < typeDef.allOf.length; i++ ) {
-                            this.processInherit(typeDef.allOf[i]);
+                        for( var i = 0; i < schema.allOf.length; i++ ) {
+                            this.processInherit(schema.allOf[i]);
                         }
                     } 
-
-                    if( schema.anyOf ) {
-                        for( var i = 0; i < schema.anyOf.length; i++ ) {
-                            this.processAnyOf(schema.anyOf[i]);
-                        }
+                    
+                    if( root && this.oneOfSelected != -1 ) {
+                        this.processInherit(this.oneOf[this.oneOfSelected]);
                     }
 
-                    if( schema.properties  ) {
-                        for( var key in this.schema.properties ) {
-                            this.processProperties(key, this.schema.properties.properties[key]);
+                    if( schema.patternProperties ) {
+                        for( var key in schema.patternProperties ) {
+                            var regex = new RegExp(key);
+                            var data = [];
+
+                            for( var datakey in this.data ) {
+                                if( !datakey.match(regex) ) continue;
+                                
+                                data.push({
+                                    key : datakey,
+                                    value : this.data[datakey]
+                                });
+                            }
+
+                            this.custom.push({
+                                allow : true,
+                                pattern : key,
+                                schema : this.processOneOrAnyOf(schema.patternProperties[key]),
+                                data : data
+                            });
                         }
-                    }                    
+                    }
+                },
+
+                setOneOf : function(e) {
+                    if( e ) {
+                        this.oneOfSelected = parseInt(e.currentTarget.value);
+                    }
+
+                    this.objProperties = [];
+                    this.anyOf = [];
+                    this.allOf = [];
+                    this.inherit(this.schema, true);
+                },
+
+                processOneOrAnyOf : function(def) {
+                    if( def.$ref ) {
+                        return CWN.schemaEditor.loadRef(def.$ref, this.schema, this.parentSchema);
+                    }
+
+                    return def;
                 },
 
                 processInherit : function(def) {
-                    if( typeDef.$ref ) {
-                        def = CWN.schemaEditor.loadRef(typeDef.$ref, this.schema);
+                    if( def.$ref ) {
+                        def = CWN.schemaEditor.loadRef(def.$ref, this.schema, this.parentSchema);
                     }
-                    this.inherit(def);
+                    this.inherit(def, false);
                 },
 
                 processProperty : function(key, typeDef) {
+                    var prop;
                     if( typeDef.$ref ) {
-                        this.properties.push({
+                        prop = {
                             key : key,
-                            schema : CWN.schemaEditor.loadRef(typeDef.$ref, this.schema);
-                        });
+                            schema : CWN.schemaEditor.loadRef(typeDef.$ref, this.schema, this.parentSchema),
+                            parentSchema : this.schema
+                        };
                     } else {
-                        this.properties.push({
+                        prop = {
                             key : key,
-                            schema : typeDef
-                        });
+                            schema : typeDef,
+                            parentSchema : this.schema
+                        };
                     }
+
+                    var objKeys = ['oneOf', 'allOf', 'anyOf'];
+                    for( var i = 0; i < objKeys.length; i++ ) {
+                        if( prop.schema[objKeys[i]] ) {
+                            prop.schema.type = 'object';
+                            break;
+                        }
+                    }
+
+                    this.objProperties.push(prop);
                 }
 
             });

@@ -1,6 +1,14 @@
 <polymer-element name="cwn-schema-editor" attributes="rootDir file">
     <template>
-        <cwn-schema-element rootDir="{{rootDir}}" file="{{file}}" data="{{data}}">
+        <template bind if="{{rootDir}}">
+            <cwn-schema-object-input  
+                rootDir="{{rootDir}}"
+                file="{{file}}" 
+                data="{{data}}"
+                schema="{}"
+                parentSchema="{}">
+            </cwn-schema-object-input>
+        </template>
     </template>
     <script>
         (function(){
@@ -9,7 +17,7 @@
             Polymer('cwn-schema-editor', {
                 rootDir : '',
                 file : '',
-                data : {}
+                data : {},
 
                 observe : {
                     rootDir : 'onRootDirChange'
@@ -25,13 +33,15 @@
             if( !window.CWN ) window.CWN = {};
             CWN.schemaEditor = {};
 
-            CWN.schemaEditor.loadRef = function(ref, schema) {
+            CWN.schemaEditor.loadRef = function(ref, schema, parentSchema) {
+                if( ref == '#/external' ) return CWN.schemaEditor.createExternalRefernce();
+
                 var parts = ref.split('#'), subSchema;
 
-                if( parts.length > 0 ) {
-                    subSchema = this.rootDir+'/'+parts[0];
+                if( parts[0].length > 0 ) {
+                    subSchema = CWN.schemaEditor.rootDir+'/'+parts[0];
                     
-                    if( !fs.exsitsSync(subSchema) ) {
+                    if( !fs.existsSync(subSchema) ) {
                         return console.log('Cant find subSchema: '+subSchema);
                     } else {
                         subSchema = fs.readFileSync(subSchema);
@@ -42,8 +52,19 @@
                 }
 
                 if( parts.length > 1 ) {
-                    parts = parts[1].split('/');
-                    subSchema = this.loadLocalRef(0, parts, subSchema);
+                    parts = parts[1].replace(/^\//,'').split('/');
+                    resp = this.loadLocalRef(0, parts, subSchema);
+
+                    if( resp == -1 && parentSchema ) {
+                        resp = this.loadLocalRef(0, parts, parentSchema);
+                    }
+                    
+                    if( resp == -1 ) {
+                        subSchema = {};
+                        console.log('Error loading local ref: ['+parts+']');
+                    } else {
+                        subSchema = resp;
+                    }
                 }
 
                 return subSchema;
@@ -57,8 +78,13 @@
                     index++;
                     return this.loadLocalRef(index, parts, subSchema);
                 } else {
-                    console.log('Error loading local ref: '+index+' ['+parts+']');
-                    return {};
+                    return -1;
+                }
+            };
+
+            CWN.schemaEditor.createExternalRefernce = function() {
+                return {
+                    type : 'reference'
                 }
             };
 
