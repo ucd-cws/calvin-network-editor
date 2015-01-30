@@ -1,4 +1,4 @@
-<polymer-element name="cwn-schema-object-input" attributes="rootDir file schema data parentSchema">
+<polymer-element name="cwn-schema-object-input" attributes="rootDir file schema data key parentSchema">
     <template>
         <style>
             h4 {
@@ -20,7 +20,6 @@
         <h5>{{schema.description}}</h5>
 
         <div class="debug">{{debug}}</div>
-
         <template bind if="{{error}}">
             <div style="color:red">{{error}}</div>
         </template>
@@ -48,6 +47,7 @@
             </cwn-schema-input>
         </template>
 
+        <!-- this is for pattern inputs -->
         <template repeat="{{c in custom}}">
             <div layout horizontal>
                 <div>
@@ -84,6 +84,7 @@
             Polymer('cwn-schema-object-input', {
                 rootDir : '',
                 file : '',
+                key : '',
                 schema : {},
                 parentSchema : {},
                 
@@ -103,6 +104,9 @@
                 debug : '',
 
                 ready : function() {
+                    //console.log('Object: '+this.key);
+                    //console.log(this.data);
+
                     this.oneOf = [];
                     this.anyOf = [];
                     this.isA = [];
@@ -196,9 +200,12 @@
                         this.oneOfSelected = parseInt(e.currentTarget.value);
                     }
 
+                    // when our type if updated, clear everything
                     this.objProperties = [];
                     this.anyOf = [];
                     this.allOf = [];
+                    this.custom = [];
+
                     this.inherit(this.schema, true);
                 },
 
@@ -214,7 +221,18 @@
                     if( def.$ref ) {
                         def = CWN.schemaEditor.loadRef(def.$ref, this.schema, this.parentSchema);
                     }
-                    this.inherit(def, false);
+
+                    // if this is of type 'object'
+                    if( !def.type && this.isTypeObject(def) ) {
+                        def.type = 'object';
+                    }
+
+                    if( def.type == 'object' ) {
+                        this.inherit(def, false);
+                    } else {
+                        this.processProperty(this.key, def);
+                    }
+                    
                 },
 
                 processProperty : function(key, typeDef) {
@@ -233,15 +251,28 @@
                         };
                     }
 
-                    var objKeys = ['oneOf', 'allOf', 'anyOf'];
+                    /*var objKeys = ['oneOf', 'allOf', 'anyOf'];
                     for( var i = 0; i < objKeys.length; i++ ) {
                         if( prop.schema[objKeys[i]] ) {
                             prop.schema.type = 'object';
                             break;
                         }
                     }
+                    this.objProperties.push(prop);*/
+
+                    if( !prop.schema.type && this.isTypeObject(prop.schema) ) prop.schema.type = 'object';
 
                     this.objProperties.push(prop);
+                },
+
+                isTypeObject : function(def) {
+                    // if the def has a type, this is a horrible idea!
+
+                    var objKeys = ['oneOf', 'allOf', 'anyOf', 'properties'];
+                    for( var i = 0; i < objKeys.length; i++ ) {
+                        if( def[objKeys[i]] ) return true;  
+                    }
+                    return false;
                 }
 
             });

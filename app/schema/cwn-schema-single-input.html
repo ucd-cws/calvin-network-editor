@@ -9,6 +9,12 @@
                 color: #888;
                 padding: 5px;
             }
+            .debug {
+                padding: 10px;
+                margin: 10px;
+                background-color: #eee;
+                font-size: 11px;
+            }
         </style>
 
         <div layout horizontal>
@@ -41,6 +47,7 @@
                 <template bind if="{{schema.unknown}}">
                     <div>Unknown</div>
                     <div>{{schema.type}}: {{data[key]}}</div>
+                    <div class="debug">{{debug}}</div>
                 </template>
             </div>
         </div>
@@ -52,15 +59,27 @@
             data : '',
             schema : {},
             key : '',
+            debug : '',
 
+            knownTypes : ['enum', 'null', 'string'],
 
             observe : {
                 data : 'onChange',
                 schema : 'onChange'
             },
 
+            ready : function() {
+                //console.log('Input: '+this.key);
+                //console.log(this.data);
+            },
+
             onChange : function() {
                 if( !this.data || !this.schema ) return;
+
+                // TODO: what is the real condition here
+                if( this.data[this.key] === undefined && Array.isArray(this.data) ) {
+                    return;
+                }
 
                 if( !this.schema.type && this.schema.enum ) {
                     this.schema.type = 'enum';
@@ -77,8 +96,11 @@
                     typeof this.data[this.key] != 'string' ) {
 
                     this.data[this.key] = '';   
-                } else {
+                } 
+
+                if( this.knownTypes.indexOf(this.schema.type) == -1 ) {
                     this.schema.unknown = true;
+                    this.debug = JSON.stringify(this.schema);
                 }
             }
         });

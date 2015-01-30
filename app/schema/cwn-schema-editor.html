@@ -23,6 +23,10 @@
                     rootDir : 'onRootDirChange'
                 },
 
+                ready : function() {
+                    //this.data = {foo: 'bar'};
+                },
+
                 onRootDirChange : function() {
                     CWN.schemaEditor.rootDir = this.rootDir;
                 }

@@ -20,33 +20,28 @@
                 <button on-click="{{add}}">Add</button>
 
                 <template repeat="{{value, i in data[key]}}">
-                    <template bind if="{{arrayOfArrays}}">
-                        <div layout horizontal>
+                    <div layout horizontal>
+
+                        <template bind if="{{arrayOfArrays}}">
                             <template repeat="{{subValue, j in value}}">
-                                <div layout horizontal>
-                                    <cwn-schema-input 
-                                        data="{{value}}" 
-                                        key="{{j}}" 
-                                        schema="{{schema.items[j]}}">
-                                    </cwn-schema-input>
-
-                                    <div><a>-</a></div>
-                                </div>
+                                <cwn-schema-input 
+                                    data="{{value}}" 
+                                    key="{{j}}" 
+                                    schema="{{schema.items[j]}}">
+                                </cwn-schema-input>
                             </template>
-                        </div>
-                    </template>
+                        </template>
 
-                    <template bind if="{{!arrayOfArrays}}">
-                        <div layout horizontal>
+                        <template bind if="{{!arrayOfArrays}}">
                             <cwn-schema-input 
                                 data="{{data[key]}}" 
                                 key="{{i}}" 
                                 schema="{{schema.items}}">
                             </cwn-schema-input>
-                        
-                            <div><a>-</a></div>
-                        </div>
-                    </template>
+                        </template>
+
+                        <div><button index='{{i}}' on-click="{{remove}}">-</button></div>
+                    </div>
                 </template>
             </div>
         </div>
@@ -66,43 +61,49 @@
             },
 
             ready : function() {
-                this.schema = {};
-                this.parentSchema = {};
-                this.data = {};
+                //console.log('Array: '+this.key);
+                //console.log(this.data);
             },
 
             onChange : function() {
-                if( !data[key] === undefined ) data[key] = [];
-                if( !Array.isArray(data[key]) ) data[key] = [];
+                if( !this.data[this.key] === undefined ) this.data[this.key] = [];
+                if( !Array.isArray(this.data[this.key]) ) this.data[this.key] = [];
             },
 
             onSchemaChange : function() {
-                if( !schema.items ) return;
+                if( !this.schema.items ) return;
 
-                if( Array.isArray(schema.items) ) {
+                if( Array.isArray(this.schema.items) ) {
                     this.arrayOfArrays = true;
 
-                    for( var i = 0; i < schema.items.length; i++ ) {
-                        if( !schema.items[i].$ref ) continue;
+                    for( var i = 0; i < this.schema.items.length; i++ ) {
+                        if( !this.schema.items[i].$ref ) continue;
 
-                        schema.items[i] = CWN.schemaEditor.loadRef(schema.items[i].$ref, this.schema, this.parentSchema);
+                        this.schema.items[i] = CWN.schemaEditor.loadRef(this.schema.items[i].$ref, this.schema, this.parentSchema);
                     }
-                } else if( schema.items.$ref ) {
-                    schema.items = CWN.schemaEditor.loadRef(schema.items.$ref, this.schema, this.parentSchema);
+                } else if( this.schema.items.$ref ) {
+                    this.schema.items = CWN.schemaEditor.loadRef(this.schema.items.$ref, this.schema, this.parentSchema);
                 }
             },
 
             // note the child type should be corrected by the input element
             add : function() {
+                if( !this.data[this.key] ) this.data[this.key] = [];
+
                 if( this.arrayOfArrays ) {
                     var arr = [];
                     for( var i = 0; i < this.schema.items.length; i++ ) {
                         arr.push('');
                     }
-                    this.data[key].push('');
+                    this.data[this.key].push('');
                 } else {
-                    this.data[key].push('');
+                    this.data[this.key].push('');
                 }
+            },
+
+            remove : function(e) {
+                var index = parseInt(e.currentTarget.getAttribute('index'));
+                this.data[this.key].splice(index, 1);
             }
 
 

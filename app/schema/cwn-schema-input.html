@@ -5,11 +5,11 @@
                 display: block;
                 padding: 10px;
                 margin: 10px;
+            }
+            :host(.object) {   
                 border: 1px solid #ccc;
             }
         </style>
-
-        <h4>{{key}}</h4>
 
         <!-- stamp out by schema type -->
         <template bind if="{{schema.type == 'object'}}">
@@ -32,6 +32,15 @@
             key : '',
             parentSchema : {},
             schema : {},
+
+            observe : {
+                'schema.type' : 'setClass'
+            },
+
+            setClass : function() {
+                this.className = this.schema.type || 'unknown';
+            }
+
         });
     </script>
 </polymer-element>
