@@ -16,76 +16,87 @@
             }
         </style>
 
-        <div layout horizontal>
-            <div hidden?="{{!showKey}}" style="padding: 10px">{{key}}</div>
-            <div flex>
-
-                <h4>{{schema.title}}</h4>
-                <h5>{{schema.description}}</h5>
-
-                <div class="debug">{{debug}}</div>
-                <template bind if="{{error}}">
-                    <div style="color:red">{{error}}</div>
-                </template>
 
 
-                <template bind if="{{oneOf.length > 0}}">
-                    <cwn-form-input>
-                        <span label>{{schema.title}} is of type:</span>
-                        <select on-change="{{setOneOf}}" class="form-control">
-                            <template repeat="{{type, j in oneOf}}">
-                                <option value="{{j}}">{{type.title || type.type}}</option>
-                            </template>
-                        </select>
-                    </cwn-form-input>
-                </template>
 
-                <template repeat="{{item, i in objProperties}}">
-                    <cwn-schema-input 
-                        data="{{data}}"
-                        key="{{item.key}}"
-                        schema="{{item.schema}}"
-                        parentSchema="{{item.parentSchema}}">
-                    </cwn-schema-input>
-                </template>
+            <div layout horizontal>
+                <div hidden?="{{!showKey}}" style="padding: 10px">{{key}}</div>
+                <div flex>
+                    <div style="text-align: right">
+                        <a class="btn btn-link" on-click="{{toggle}}">
+                            <span hidden?="{{!opened}}">-</span>
+                            <span hidden?="{{opened}}">+</span>
+                        </a>
+                    </div>
 
-                <!-- this is for pattern inputs -->
-                <template repeat="{{c, i in custom}}">
+                    <core-collapse opened="{{opened}}">
+                        <h4>{{schema.title}}</h4>
+                        <h5>{{schema.description}}</h5>
 
-                    <cwn-form-input horizontal="true">
-                        <div label>
-                            <button class="btn btn-default" index="{{i}}" on-click="{{addCustomProperty}}">Add {{c.schema.title || c.schema.type}}</button>
-                        </div>
-                        <input type="text"  class="form-control" placeholder="Name" value="{{c.tmpName}}" on-keypress="{{onCustomNameInput}}" index="{{i}}" />
-                    </cwn-form-input>
+                        <div class="debug">{{debug}}</div>
+                        <template bind if="{{error}}">
+                            <div style="color:red">{{error}}</div>
+                        </template>
 
-                    <template repeat="{{data in c.data}}">
-                        <div style="padding: 10px">
-                            <div layout horizontal>
-                                <div>
-                                    <div style="padding: 5px">
-                                        <div>{{data.key}}</div>
+
+                        <template bind if="{{oneOf.length > 0}}">
+                            <cwn-form-input>
+                                <span label>{{schema.title}} is of type:</span>
+                                <select on-change="{{setOneOf}}" class="form-control">
+                                    <template repeat="{{type, j in oneOf}}">
+                                        <option value="{{j}}">{{type.title || type.type}}</option>
+                                    </template>
+                                </select>
+                            </cwn-form-input>
+                        </template>
+
+                        <template repeat="{{item, i in objProperties}}">
+                            <cwn-schema-input 
+                                data="{{data}}"
+                                key="{{item.key}}"
+                                schema="{{item.schema}}"
+                                parentSchema="{{item.parentSchema}}">
+                            </cwn-schema-input>
+                        </template>
+
+                        <!-- this is for pattern inputs -->
+                        <template repeat="{{c, i in custom}}">
+
+                            <cwn-form-input horizontal="true">
+                                <div label>
+                                    <button class="btn btn-default" index="{{i}}" on-click="{{addCustomProperty}}">Add {{c.schema.title || c.schema.type}}</button>
+                                </div>
+                                <input type="text"  class="form-control" placeholder="Name" value="{{c.tmpName}}" on-keypress="{{onCustomNameInput}}" index="{{i}}" />
+                            </cwn-form-input>
+
+                            <template repeat="{{data in c.data}}">
+                                <div style="padding: 10px">
+                                    <div layout horizontal>
                                         <div>
-                                            <a class="btn btn-danger" on-click="{{removeCustomProperty}}" key="{{data.key}}" index="{{i}}">Remove</a>
+                                            <div style="padding: 5px">
+                                                <div>{{data.key}}</div>
+                                                <div>
+                                                    <a class="btn btn-danger" on-click="{{removeCustomProperty}}" key="{{data.key}}" index="{{i}}">Remove</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div flex>
+                                            <cwn-schema-input 
+                                                showKey="false"
+                                                data="{{data.value}}"
+                                                key="{{data.key}}"
+                                                schema="{{c.schema}}"
+                                                parentSchema="{{schema}}">
+                                            </cwn-schema-input>
                                         </div>
                                     </div>
                                 </div>
-                                <div flex>
-                                    <cwn-schema-input 
-                                        showKey="false"
-                                        data="{{data.value}}"
-                                        key="{{data.key}}"
-                                        schema="{{c.schema}}"
-                                        parentSchema="{{schema}}">
-                                    </cwn-schema-input>
-                                </div>
-                            </div>
-                        </div>
-                    </template>
-                    
-                </template>
+                            </template>        
+                        </template>
+                    </core-collapse>
+
+                </div>
             </div>
-        </div>
     </template>
     <script>
         (function(){
@@ -99,6 +110,8 @@
                 parentSchema : {},
                 showKey : true,
                 
+                opened : true,
+
                 oneOf : [],
                 oneOfSelected : -1,
                 anyOf : [],
@@ -140,6 +153,10 @@
 
                         this.inherit(this.schema, true);
                     });
+                },
+
+                toggle : function() {
+                    this.opened = !this.opened;
                 },
 
                 checkType : function() {
