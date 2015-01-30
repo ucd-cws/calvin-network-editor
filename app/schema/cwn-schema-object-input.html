@@ -48,28 +48,33 @@
         </template>
 
         <!-- this is for pattern inputs -->
-        <template repeat="{{c in custom}}">
+        <template repeat="{{c, i in custom}}">
             <div layout horizontal>
                 <div>
-                    <button>Add {{c.schema.title || c.schema.type}}</button>
+                    <button index="{{i}}" on-click="{{addCustomProperty}}">Add {{c.schema.title || c.schema.type}}</button>
                 </div>
                 <div>
-                    Name: <input type="text" />
+                    Name: <input type="text" value="{{c.tmpName}}" on-keypress="{{onCustomNameInput}}" index="{{i}}" />
                 </div>
             </div>
 
             <template repeat="{{data in c.data}}">
-                <div layout horizontal>
-                    <div>
-                        Name: <input type="text" />
-                    </div>
-                    <div>
-                        <cwn-schema-input 
-                            data="{{data.value}}"
-                            key="{{data.key}}"
-                            schema="{{c.schema}}"
-                            parentSchema="{{schema}}">
-                        </cwn-schema-input>
+                <div style="padding: 10px">
+                    <div layout horizontal>
+                        <div>
+                            <div style="padding: 5px">
+                                <div>{{data.key}}</div>
+                                <div><a on-click="{{removeCustomProperty}}" key="{{data.key}}" index="{{i}}">Remove</a></div>
+                            </div>
+                        </div>
+                        <div flex>
+                            <cwn-schema-input 
+                                data="{{data.value}}"
+                                key="{{data.key}}"
+                                schema="{{c.schema}}"
+                                parentSchema="{{schema}}">
+                            </cwn-schema-input>
+                        </div>
                     </div>
                 </div>
             </template>
@@ -103,6 +108,10 @@
                 error : '',
                 debug : '',
 
+                observe : {
+                    data : 'checkType'
+                },
+
                 ready : function() {
                     //console.log('Object: '+this.key);
                     //console.log(this.data);
@@ -125,6 +134,10 @@
 
                         this.inherit(this.schema, true);
                     });
+                },
+
+                checkType : function() {
+                    if( typeof this.data != 'object' ) this.data = {};
                 },
 
                 loadSchema : function() {
@@ -171,28 +184,51 @@
                         this.processInherit(this.oneOf[this.oneOfSelected]);
                     }
 
+                    if( root ) {
+                        this.updatePatternProps(this.schema);
+                    }
+
+                },
+
+                updatePatternProps : function(schema) {
                     if( schema.patternProperties ) {
+                        var d = this.key ? this.data[this.key] : this.data;
+                                   
                         for( var key in schema.patternProperties ) {
                             var regex = new RegExp(key);
                             var data = [];
-
-                            for( var datakey in this.data ) {
-                                if( !datakey.match(regex) ) continue;
-                                
-                                data.push({
-                                    key : datakey,
-                                    value : this.data[datakey]
-                                });
+                            
+                            if( d ) {
+                                for( var datakey in d ) {
+                                    if( this.isControlledProp(datakey) || !datakey.match(regex) ) continue;
+                                    
+                                    data.push({
+                                        key : datakey,
+                                        value : d[datakey]
+                                    });
+                                }
                             }
+
+                            var schema = this.processOneOrAnyOf(schema.patternProperties[key]);
+                            if( !schema.type && this.isTypeObject(schema) ) schema.type = 'object';
 
                             this.custom.push({
                                 allow : true,
                                 pattern : key,
-                                schema : this.processOneOrAnyOf(schema.patternProperties[key]),
-                                data : data
+                                schema : schema,
+                                data : data,
+                                tmpName : ''
                             });
                         }
+                        
                     }
+                },
+
+                isControlledProp : function(key) {
+                    for( var i = 0; i < this.objProperties.length; i++ ) {
+                        if( this.objProperties[i].key == key ) return true;
+                    }
+                    return false;
                 },
 
                 setOneOf : function(e) {
@@ -251,18 +287,46 @@
                         };
                     }
 
-                    /*var objKeys = ['oneOf', 'allOf', 'anyOf'];
-                    for( var i = 0; i < objKeys.length; i++ ) {
-                        if( prop.schema[objKeys[i]] ) {
-                            prop.schema.type = 'object';
-                            break;
-                        }
-                    }
-                    this.objProperties.push(prop);*/
-
                     if( !prop.schema.type && this.isTypeObject(prop.schema) ) prop.schema.type = 'object';
 
                     this.objProperties.push(prop);
+                },
+
+                onCustomNameInput : function(e) {
+                    if( e.which == 13 ) this.addCustomProperty(e);
+                },
+
+                addCustomProperty : function(e) {
+                    var index = parseInt(e.currentTarget.getAttribute('index'));
+                    var propDef = this.custom[index];
+
+                    if( propDef.tmpName.length == 0 ) return alert('Please provide an attibute name');
+                    if( !propDef.tmpName.match(new RegExp(propDef.pattern)) ) {
+                        return alert('Invalid attribute name "'+propDef+'".  Must match: '+propDef.pattern);
+                    }
+
+                    this.data[propDef.tmpName] = '';
+                    propDef.data.push({
+                        key : propDef.tmpName,
+                        value : ''
+                    });
+
+                    propDef.tmpName = '';
+                },
+
+                removeCustomProperty : function(e) {
+                    var index = parseInt(e.currentTarget.getAttribute('index'));
+                    var key = e.currentTarget.getAttribute('key');
+
+                    var propDef = this.custom[index];
+                    for( var i = 0; i < propDef.data.length; i++ ) {
+                        if( propDef.data[i].key == key ) {
+                            propDef.data.splice(i, 1);
+                            break;
+                        }
+                    }
+
+                    delete this.data[key];
                 },
 
                 isTypeObject : function(def) {

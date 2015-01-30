@@ -23,11 +23,11 @@
                 <div>{{schema.title}}</div>
             </div>
             <div >
-                <template bind if="{{schema.type == 'string'}}">
+                <template bind if="{{schema.type == 'string' && !schema.enum}}">
                     <input type="text" value="{{data[key]}}" />
                 </template>
 
-                <template bind if="{{schema.type == 'enum'}}">
+                <template bind if="{{schema.type == 'enum' || schema.enum}}">
                     <template bind if="{{schema.enum.length == 1}}">
                         {{schema.enum[0]}}
                     </template>
@@ -43,11 +43,15 @@
                 <template bind if="{{schema.type == 'null'}}">
                     null
                 </template>
+
+                <template bind if="{{schema.type == 'number'}}">
+                    <input type="number" value="{{data[key]}}" />
+                </template>
                 
                 <template bind if="{{schema.unknown}}">
                     <div>Unknown</div>
                     <div>{{schema.type}}: {{data[key]}}</div>
-                    <div class="debug">{{debug}}</div>
+                    <div class="debug">{{debug}}</div>      
                 </template>
             </div>
         </div>
@@ -61,7 +65,7 @@
             key : '',
             debug : '',
 
-            knownTypes : ['enum', 'null', 'string'],
+            knownTypes : ['enum', 'null', 'string', 'number'],
 
             observe : {
                 data : 'onChange',
@@ -100,8 +104,8 @@
 
                 if( this.knownTypes.indexOf(this.schema.type) == -1 ) {
                     this.schema.unknown = true;
-                    this.debug = JSON.stringify(this.schema);
                 }
+                this.debug = JSON.stringify(this.schema);
             }
         });
     </script>
