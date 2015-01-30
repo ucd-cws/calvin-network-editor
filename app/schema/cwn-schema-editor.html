@@ -1,5 +1,15 @@
-<polymer-element name="cwn-schema-editor" attributes="rootDir file">
+<polymer-element name="cwn-schema-editor" attributes="file">
     <template>
+        <div>
+            <input style="display:none;" id="fileDialog" type="file" on-change="{{onSelect}}" webkitdirectory />
+            <button class="btn btn-default" on-click="{{chooseFile}}">Select Directory</button>
+        </div>
+
+        <div>
+            <div>Root Directory: {{rootDir}}</div>
+            <div>File: {{file}}</div>
+        </div>
+
         <template bind if="{{rootDir}}">
             <cwn-schema-object-input  
                 rootDir="{{rootDir}}"
@@ -24,11 +34,25 @@
                 },
 
                 ready : function() {
-                    //this.data = {foo: 'bar'};
+                    var dir = window.localStorage.getItem('schemaRootDir');
+                    if( dir ) this.rootDir = dir;
+                },
+
+                chooseFile : function() {
+                    this.$.fileDialog.click();
+                },
+
+                onSelect : function(e) {
+                    this.select(this.$.fileDialog.value);
                 },
 
                 onRootDirChange : function() {
                     CWN.schemaEditor.rootDir = this.rootDir;
+                },
+
+                select : function(dir) {
+                    this.rootDir = dir;
+                    window.localStorage.setItem('schemaRootDir', this.rootDir);
                 }
 
             });
