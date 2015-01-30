@@ -44,3 +44,14 @@ The root data repo, [calvin-network-data](https://github.com/ucd-cws/calvin-netw
 - **ctrl + r**: refresh app
 - **ctrl + i**: open devtools
 
+## JSON Schema Editor
+To fire up the prototype schema editor run:
+```
+grunt shell:run-schema
+```
+
+Then you need to select the root of the json schema.  Probably something like: /Users/me/dev/calvin-network-data/json-schema.
+
+You should then see the schema populate in the editor.  Currently the editor only uses node.json as the root.
+
+TODOs: A whole bunch-o-things.
