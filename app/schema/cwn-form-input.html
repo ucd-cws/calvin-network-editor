@@ -1,0 +1,25 @@
+<polymer-element name="cwn-form-input" attributes="horizontal" noscript>
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+        </style>
+
+        <div class="{{horizontal ? 'form-horizontal' : ''}}">
+          <div class="form-group">
+            <label for="input" class="{{horizontal ? 'col-sm-2 control-label' : ''}}">
+                <content select="[label]"></content>
+            </label>
+            <div class="{{horizontal ? 'col-sm-10' : ''}}">
+              <content select="input"></content>
+              <content select="select"></content>
+              <content select=".static"></content>
+            </div>
+          </div>
+          <div class="help-block">
+            <content select="[help]"></content>
+          </div>
+        </div>
+    </template>
+</polymer-element>

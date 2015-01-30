@@ -1,19 +1,28 @@
-<polymer-element name="cwn-schema-input" attributes="schema data key parentSchema">
+<polymer-element name="cwn-schema-input" attributes="schema data key parentSchema showKey">
     <template>
         <style>
             :host {
                 display: block;
                 padding: 10px;
-                margin: 10px;
+                margin: 15px;
             }
             :host(.object) {   
-                border: 1px solid #ccc;
+                box-shadow: 0px 0px 15px #888;
+                border-radius: 12px;
+
+                transition: all 250ms linear; 
+                -webkit-transition: all 250ms linear; 
+                -moz-transition: all 250ms linear; 
+                -ms-transition: all 250ms linear; 
+            }
+            :host(.object:hover) {  
+                box-shadow: 0px 0px 18px #555;
             }
         </style>
 
         <!-- stamp out by schema type -->
         <template bind if="{{schema.type == 'object'}}">
-            <cwn-schema-object-input schema="{{schema}}" parentSchema="{{parentSchema}}" data="{{data}}" key="{{key}}"></cwn-schema-object-input>
+            <cwn-schema-object-input schema="{{schema}}" parentSchema="{{parentSchema}}" data="{{data}}" key="{{key}}" showKey="{{showKey}}"></cwn-schema-object-input>
         </template>
         <template bind if="{{schema.type == 'array'}}">
             <cwn-schema-array-input schema="{{schema}}" parentSchema="{{parentSchema}}" data="{{data}}" key="{{key}}"></cwn-schema-array-input>
@@ -29,6 +38,7 @@
     <script>
         Polymer('cwn-schema-input', {
             data : {},
+            showKey : true,
             key : '',
             parentSchema : {},
             schema : {},

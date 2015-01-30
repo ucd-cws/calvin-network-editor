@@ -17,45 +17,47 @@
             }
         </style>
 
-        <div layout horizontal>
-            <div style="padding: 10px">
+        <cwn-form-input>
+            <div label>
                 <div>{{key}}</div>
                 <div>{{schema.title}}</div>
             </div>
-            <div >
-                <template bind if="{{schema.type == 'string' && !schema.enum}}">
-                    <input type="text" value="{{data[key]}}" />
-                </template>
+            <template bind if="{{schema.type == 'string' && !schema.enum}}">
+                <input type="text" value="{{data[key]}}" class="form-control" />
+            </template>
 
-                <template bind if="{{schema.type == 'enum' || schema.enum}}">
-                    <template bind if="{{schema.enum.length == 1}}">
-                        {{schema.enum[0]}}
-                    </template>
-                    <template bind if="{{schema.enum.length > 1}}">
-                        <select value="{{data[key]}}">
-                            <template repeat="{{enum in schema.enum}}">
-                                <option value="{{enum}}" selected?="{{enum == data[key]}}">{{enum}}</option>
-                            </template>
-                        </select>
-                    </template>
+            <template bind if="{{schema.type == 'enum' || schema.enum}}">
+                <template bind if="{{schema.enum.length == 1}}">
+                    <input type="text" class="form-control" disabled value="{{schema.enum[0]}}">
                 </template>
-                
-                <template bind if="{{schema.type == 'null'}}">
-                    null
+                <template bind if="{{schema.enum.length > 1}}">
+                    <select value="{{data[key]}}" class="form-control">
+                        <template repeat="{{enum in schema.enum}}">
+                            <option value="{{enum}}" selected?="{{enum == data[key]}}">{{enum}}</option>
+                        </template>
+                    </select>
                 </template>
+            </template>
+            
+            <template bind if="{{schema.type == 'null'}}">
+                <input type="text" class="form-control" disabled value="null">
+            </template>
 
-                <template bind if="{{schema.type == 'number'}}">
-                    <input type="number" value="{{data[key]}}" />
-                </template>
-                
+            <template bind if="{{schema.type == 'number'}}">
+                <input type="number" value="{{data[key]}}" class="form-control" />
+            </template>
+            
+            <div class="static">
                 <template bind if="{{schema.unknown}}">
                     <div>Unknown</div>
                     <div>{{schema.type}}: {{data[key]}}</div>
                     <div class="debug">{{debug}}</div>      
                 </template>
             </div>
+
+            <div help>{{schema.description}}</div>
         </div>
-        <div class="help">{{schema.description}}</div>
+        
 
     </template>
     <script>

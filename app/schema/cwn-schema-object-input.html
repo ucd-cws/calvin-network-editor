@@ -1,4 +1,4 @@
-<polymer-element name="cwn-schema-object-input" attributes="rootDir file schema data key parentSchema">
+<polymer-element name="cwn-schema-object-input" attributes="rootDir file schema data key parentSchema showKey">
     <template>
         <style>
             h4 {
@@ -16,71 +16,76 @@
             }
         </style>
 
-        <h4>{{schema.title}}</h4>
-        <h5>{{schema.description}}</h5>
+        <div layout horizontal>
+            <div hidden?="{{!showKey}}" style="padding: 10px">{{key}}</div>
+            <div flex>
 
-        <div class="debug">{{debug}}</div>
-        <template bind if="{{error}}">
-            <div style="color:red">{{error}}</div>
-        </template>
+                <h4>{{schema.title}}</h4>
+                <h5>{{schema.description}}</h5>
+
+                <div class="debug">{{debug}}</div>
+                <template bind if="{{error}}">
+                    <div style="color:red">{{error}}</div>
+                </template>
 
 
-        <template bind if="{{oneOf.length > 0}}">
-            <div layout horizontal>
-                <h5>{{schema.title}} is of type:</h5>
-                <div>
-                    <select on-change="{{setOneOf}}">
-                        <template repeat="{{type, j in oneOf}}">
-                            <option value="{{j}}">{{type.title || type.type}}</option>
-                        </template>
-                    </select>
-                </div>
-            </div>
-        </template>
+                <template bind if="{{oneOf.length > 0}}">
+                    <cwn-form-input>
+                        <span label>{{schema.title}} is of type:</span>
+                        <select on-change="{{setOneOf}}" class="form-control">
+                            <template repeat="{{type, j in oneOf}}">
+                                <option value="{{j}}">{{type.title || type.type}}</option>
+                            </template>
+                        </select>
+                    </cwn-form-input>
+                </template>
 
-        <template repeat="{{item, i in objProperties}}">
-            <cwn-schema-input 
-                data="{{data}}"
-                key="{{item.key}}"
-                schema="{{item.schema}}"
-                parentSchema="{{item.parentSchema}}">
-            </cwn-schema-input>
-        </template>
+                <template repeat="{{item, i in objProperties}}">
+                    <cwn-schema-input 
+                        data="{{data}}"
+                        key="{{item.key}}"
+                        schema="{{item.schema}}"
+                        parentSchema="{{item.parentSchema}}">
+                    </cwn-schema-input>
+                </template>
 
-        <!-- this is for pattern inputs -->
-        <template repeat="{{c, i in custom}}">
-            <div layout horizontal>
-                <div>
-                    <button index="{{i}}" on-click="{{addCustomProperty}}">Add {{c.schema.title || c.schema.type}}</button>
-                </div>
-                <div>
-                    Name: <input type="text" value="{{c.tmpName}}" on-keypress="{{onCustomNameInput}}" index="{{i}}" />
-                </div>
-            </div>
+                <!-- this is for pattern inputs -->
+                <template repeat="{{c, i in custom}}">
 
-            <template repeat="{{data in c.data}}">
-                <div style="padding: 10px">
-                    <div layout horizontal>
-                        <div>
-                            <div style="padding: 5px">
-                                <div>{{data.key}}</div>
-                                <div><a on-click="{{removeCustomProperty}}" key="{{data.key}}" index="{{i}}">Remove</a></div>
+                    <cwn-form-input horizontal="true">
+                        <div label>
+                            <button class="btn btn-default" index="{{i}}" on-click="{{addCustomProperty}}">Add {{c.schema.title || c.schema.type}}</button>
+                        </div>
+                        <input type="text"  class="form-control" placeholder="Name" value="{{c.tmpName}}" on-keypress="{{onCustomNameInput}}" index="{{i}}" />
+                    </cwn-form-input>
+
+                    <template repeat="{{data in c.data}}">
+                        <div style="padding: 10px">
+                            <div layout horizontal>
+                                <div>
+                                    <div style="padding: 5px">
+                                        <div>{{data.key}}</div>
+                                        <div>
+                                            <a class="btn btn-danger" on-click="{{removeCustomProperty}}" key="{{data.key}}" index="{{i}}">Remove</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div flex>
+                                    <cwn-schema-input 
+                                        showKey="false"
+                                        data="{{data.value}}"
+                                        key="{{data.key}}"
+                                        schema="{{c.schema}}"
+                                        parentSchema="{{schema}}">
+                                    </cwn-schema-input>
+                                </div>
                             </div>
                         </div>
-                        <div flex>
-                            <cwn-schema-input 
-                                data="{{data.value}}"
-                                key="{{data.key}}"
-                                schema="{{c.schema}}"
-                                parentSchema="{{schema}}">
-                            </cwn-schema-input>
-                        </div>
-                    </div>
-                </div>
-            </template>
-            
-        </template>
-        
+                    </template>
+                    
+                </template>
+            </div>
+        </div>
     </template>
     <script>
         (function(){
@@ -92,6 +97,7 @@
                 key : '',
                 schema : {},
                 parentSchema : {},
+                showKey : true,
                 
                 oneOf : [],
                 oneOfSelected : -1,
@@ -302,7 +308,7 @@
 
                     if( propDef.tmpName.length == 0 ) return alert('Please provide an attibute name');
                     if( !propDef.tmpName.match(new RegExp(propDef.pattern)) ) {
-                        return alert('Invalid attribute name "'+propDef+'".  Must match: '+propDef.pattern);
+                        return alert('Invalid attribute name "'+propDef.tmpName+'".  Must match: '+propDef.pattern);
                     }
 
                     this.data[propDef.tmpName] = '';

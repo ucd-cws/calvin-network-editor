@@ -25,7 +25,7 @@
                 <div>{{schema.title}}</div>
             </div>
             <div> 
-                <button on-click="{{add}}">Add</button>
+                <button class="btn btn-default" on-click="{{add}}">Add</button>
 
                 <template repeat="{{value, i in data[key]}}">
                     <div layout horizontal>
@@ -48,7 +48,7 @@
                             </cwn-schema-input>
                         </template>
 
-                        <div><button index='{{i}}' on-click="{{remove}}">-</button></div>
+                        <div><button class="btn btn-danger" index='{{i}}' on-click="{{remove}}">X</button></div>
                     </div>
                 </template>
             </div>
