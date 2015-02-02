@@ -1,0 +1,34 @@
+<polymer-element name="cwn-schema-single-input-wrapper" attributes="title key help arrayInput">
+    <template>
+
+        <template bind if="{{!arrayInput}}">
+            <div class="{{horizontal ? 'form-horizontal' : ''}}">
+              <div class="form-group">
+                <label for="input" class="{{horizontal ? 'col-sm-2 control-label' : ''}}">
+                    <content select="[label]"></content>
+                </label>
+                <div class="{{horizontal ? 'col-sm-10' : ''}}">
+                  <content select="input"></content>
+                  <content select="select"></content>
+                  <content select=".static"></content>
+                </div>
+              </div>
+              <div class="help-block">
+                <content select="[help]"></content>
+              </div>
+            </div>
+        </template>
+        <template bind if="{{arrayInput}}">
+            <content select="input"></content>
+            <content select="select"></content>
+        </template>
+    </template>
+    <script>
+        Polymer('cwn-schema-single-input-wrapper', {
+            key : '',
+            title : '',
+            help : '',
+            arrayInput : false
+        });
+    </script>
+</polymer-element>

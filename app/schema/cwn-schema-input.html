@@ -1,10 +1,14 @@
-<polymer-element name="cwn-schema-input" attributes="schema data key parentSchema showKey">
+<polymer-element name="cwn-schema-input" attributes="schema data key parentSchema showKey arrayInput">
     <template>
         <style>
             :host {
                 display: block;
                 padding: 10px;
                 margin: 15px;
+            }
+            :host([arrayInput]) {
+                padding: 0;
+                margin: 0 3px;
             }
             :host(.object) {   
                 box-shadow: 0px 0px 15px #888;
@@ -31,7 +35,7 @@
             <a>External Reference Link</a>
         </template>
         <template bind if="{{schema.type != 'array' && schema.type != 'object' && schema.type != 'reference'}}">
-            <cwn-schema-single-input schema="{{schema}}" data="{{data}}" key="{{key}}"></cwn-schema-single-input>
+            <cwn-schema-single-input schema="{{schema}}" data="{{data}}" key="{{key}}" arrayInput?="{{arrayInput}}"></cwn-schema-single-input>
         </template>
 
     </template>
@@ -42,6 +46,7 @@
             key : '',
             parentSchema : {},
             schema : {},
+            arrayInput : false,
 
             observe : {
                 'schema.type' : 'setClass'

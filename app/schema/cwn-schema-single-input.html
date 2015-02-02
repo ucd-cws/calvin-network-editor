@@ -1,4 +1,4 @@
-<polymer-element name="cwn-schema-single-input" attributes="data schema key">
+<polymer-element name="cwn-schema-single-input" attributes="data schema key arrayInput">
     <template>
         <style>
             :host {
@@ -17,7 +17,7 @@
             }
         </style>
 
-        <cwn-form-input>
+        <cwn-schema-single-input-wrapper arrayInput?="{{arrayInput}}">
             <div label>
                 <div>{{key}}</div>
                 <div>{{schema.title}}</div>
@@ -66,6 +66,7 @@
             schema : {},
             key : '',
             debug : '',
+            arrayInput : false,
 
             knownTypes : ['enum', 'null', 'string', 'number'],
 

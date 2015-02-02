@@ -33,6 +33,7 @@
                         <template bind if="{{arrayOfArrays}}">
                             <template repeat="{{subValue, j in value}}">
                                 <cwn-schema-input 
+                                    arrayInput
                                     data="{{value}}" 
                                     key="{{j}}" 
                                     schema="{{schema.items[j]}}">
@@ -42,6 +43,7 @@
 
                         <template bind if="{{!arrayOfArrays}}">
                             <cwn-schema-input 
+                                arrayInput
                                 data="{{data}}" 
                                 key="{{i}}" 
                                 schema="{{schema.items}}">
