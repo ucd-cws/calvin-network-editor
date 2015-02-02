@@ -27,7 +27,7 @@
             <div> 
                 <button class="btn btn-default" on-click="{{add}}">Add</button>
 
-                <template repeat="{{value, i in data[key]}}">
+                <template repeat="{{value, i in data}}">
                     <div layout horizontal>
 
                         <template bind if="{{arrayOfArrays}}">
@@ -42,7 +42,7 @@
 
                         <template bind if="{{!arrayOfArrays}}">
                             <cwn-schema-input 
-                                data="{{data[key]}}" 
+                                data="{{data}}" 
                                 key="{{i}}" 
                                 schema="{{schema.items}}">
                             </cwn-schema-input>
@@ -99,22 +99,26 @@
 
             // note the child type should be corrected by the input element
             add : function() {
-                if( !this.data[this.key] ) this.data[this.key] = [];
+                //if( !this.data[this.key] ) this.data[this.key] = [];
+                if( !this.data ) this.data = [];
 
                 if( this.arrayOfArrays ) {
                     var arr = [];
                     for( var i = 0; i < this.schema.items.length; i++ ) {
                         arr.push('');
                     }
-                    this.data[this.key].push(arr);
+                    //this.data[this.key].push(arr);
+                    this.data.push(arr);
                 } else {
-                    this.data[this.key].push('');
+                    //this.data[this.key].push('');
+                    this.data.push('');
                 }
             },
 
             remove : function(e) {
                 var index = parseInt(e.currentTarget.getAttribute('index'));
-                this.data[this.key].splice(index, 1);
+                //this.data[this.key].splice(index, 1);
+                this.data.splice(index, 1);
             }
 
 

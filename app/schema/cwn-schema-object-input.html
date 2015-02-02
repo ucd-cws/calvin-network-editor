@@ -44,7 +44,7 @@
                                 <span label>{{schema.title}} is of type:</span>
                                 <select on-change="{{setOneOf}}" class="form-control">
                                     <template repeat="{{type, j in oneOf}}">
-                                        <option value="{{j}}">{{type.title || type.type}}</option>
+                                        <option value="{{j}}" selected?="{{j == oneOfSelected}}">{{type.title || type.type}}</option>
                                     </template>
                                 </select>
                             </cwn-form-input>
@@ -225,9 +225,8 @@
 
                     this.updatePatternProps(schema);
 
-                    if( root && this.oneOfSelected == -1 && this.oneOf.length > 0) {
-                        this.guessOneOf();
-                        
+                    if( root && this.oneOf.length > 0) {
+                        if( this.oneOfSelected == -1 ) this.guessOneOf();
                         this.processInherit(this.oneOf[this.oneOfSelected]);
                     }
                 },
@@ -241,6 +240,28 @@
                     var scores = [];
                     for( var i = 0; i < this.oneOf.length; i++ ) {
                         var score = 0;
+
+                        var def = this.processOneOrAnyOf(this.oneOf[i]);
+                        if( !def.type && this.isTypeObject(def) ) {
+                            def.type = 'object';
+                        }
+
+                        if ( def.type == 'array' ) {
+                            if( Array.isArray(this.refData) ) {
+                                score += 100;
+                            }
+                            scores.push(score);
+                            continue;
+                        } else if( def.type != 'object' ) {
+                            if( def.type == 'null' ) {
+                                if( this.refData == 'null' || this.refData === null ) {
+                                    score += 100;
+                                }
+                            }
+
+                            scores.push(score);
+                            continue;
+                        }
 
                         // TODO, handle non-objects
                         var objInput = document.createElement('cwn-schema-object-input');
@@ -259,7 +280,7 @@
 
                                 for( var z = 0; z < prop.schema.enum.length; z++ ) {
                                     if( this.refData[prop.key].toLowerCase() == prop.schema.enum[z].toLowerCase() ) {
-                                        score += 5;
+                                        score += 10;
                                         break;
                                     }
                                 }
