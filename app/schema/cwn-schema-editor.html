@@ -10,7 +10,7 @@
             <div>File: {{file}}</div>
         </div>
 
-        <template bind if="{{rootDir}}">
+        <template bind if="{{rootDir && data}}">
             <cwn-schema-object-input  
                 rootDir="{{rootDir}}"
                 file="{{file}}" 
@@ -23,11 +23,13 @@
     <script>
         (function(){
             var fs = require('fs');
+            var cwnFs = require('../js/fs');
+
 
             Polymer('cwn-schema-editor', {
                 rootDir : '',
                 file : '',
-                data : {},
+                data : null,
 
                 observe : {
                     rootDir : 'onRootDirChange'
@@ -48,6 +50,10 @@
 
                 onRootDirChange : function() {
                     CWN.schemaEditor.rootDir = this.rootDir;
+                    cwnFs.fs.init(this.rootDir+'/..');
+                    var data = cwnFs.fs.load();
+                    console.log(data);
+                    this.data = data.nodes[0];
                 },
 
                 select : function(dir) {

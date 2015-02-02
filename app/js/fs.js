@@ -124,10 +124,14 @@ this.CWN.fs = (function(){
             var jsonFile = root+'/data/nodes/'+nodes[i]+'/node.geojson';
             if( !fs.existsSync(jsonFile) ) continue;
 
-            var str = fs.readFileSync(jsonFile);
-            var node = JSON.parse(str);
-            if( !noFileProperty ) node.properties._file = jsonFile
-            data.nodes.push(node);
+            try {
+                var str = fs.readFileSync(jsonFile);
+                var node = JSON.parse(str);
+                if( !noFileProperty ) node.properties._file = jsonFile
+                data.nodes.push(node);
+            } catch (e) {
+                console.log('Unable to parse: '+jsonFile);
+            }
         }
 
         var links = fs.readdirSync(root+'/data/links');
@@ -135,10 +139,14 @@ this.CWN.fs = (function(){
             var jsonFile = root+'/data/links/'+links[i]+'/link.geojson';
             if( !fs.existsSync(jsonFile) ) continue;
 
-            var str = fs.readFileSync(jsonFile);
-            var link = JSON.parse(str);
-            if( !noFileProperty ) link.properties._file = jsonFile;
-            data.links.push(link);
+            try {
+                var str = fs.readFileSync(jsonFile);
+                var link = JSON.parse(str);
+                if( !noFileProperty ) link.properties._file = jsonFile;
+                data.links.push(link);
+            } catch(e) {
+                console.log('Unable to parse: '+jsonFile);
+            }
         }
 
         return data;

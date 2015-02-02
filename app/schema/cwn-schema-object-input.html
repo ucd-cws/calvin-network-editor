@@ -52,7 +52,7 @@
 
                         <template repeat="{{item, i in objProperties}}">
                             <cwn-schema-input 
-                                data="{{data}}"
+                                data="{{refData}}"
                                 key="{{item.key}}"
                                 schema="{{item.schema}}"
                                 parentSchema="{{item.parentSchema}}">
@@ -123,6 +123,8 @@
                 objProperties : [],
 
                 data : {},
+                refData : {},
+                original : null,
 
                 error : '',
                 debug : '',
@@ -140,19 +142,22 @@
                     this.isA = [];
                     this.objProperties = [];
                     this.custom = [];
+
                 },
 
-                attached : function() {
-                    this.async(function(){
-                        if( this.file ) {
-                            this.loadSchema();
-                        } 
-                        if( !this.schema ) return;
-                        
-                        this.debug = JSON.stringify(this.schema);
+                attached : function(callback) {
+                    this.async(this.init);
+                },
 
-                        this.inherit(this.schema, true);
-                    });
+                init : function() {
+                    if( this.file ) {
+                        this.loadSchema();
+                    } 
+                    if( !this.schema ) return;
+                    
+                    this.debug = JSON.stringify(this.schema);
+
+                    this.inherit(this.schema, true);
                 },
 
                 toggle : function() {
@@ -160,7 +165,21 @@
                 },
 
                 checkType : function() {
-                    if( typeof this.data != 'object' ) this.data = {};
+                    this.refData = this.key ? this.data[this.key] : this.data;
+
+                    if( Array.isArray(this.refData) ) {
+                        this.original = $.extend(true, [], this.refData);
+                    } else if ( typeof this.data === 'object' ) {
+                        this.original = $.extend(true, {}, this.refData);
+                    } else {
+                        this.original = this.refData;
+                    }
+
+                    /*if( typeof this.refData != 'object' ) {
+                        if( this.key ) this.data[this.key] = {};
+                        else this.data = {};
+                        this.refData = {};
+                    }*/
                 },
 
                 loadSchema : function() {
@@ -194,7 +213,6 @@
                         for( var i = 0; i < schema.oneOf.length; i++ ) {
                             this.oneOf.push(this.processOneOrAnyOf(schema.oneOf[i]));
                         }
-                        this.oneOfSelected = 0;
                     } 
 
                     if( schema.allOf ) {
@@ -203,14 +221,68 @@
                         }
                     } 
                     
-                    if( root && this.oneOfSelected != -1 ) {
+                    // might need to insert the init select oneOf here
+
+                    this.updatePatternProps(schema);
+
+                    if( root && this.oneOfSelected == -1 && this.oneOf.length > 0) {
+                        this.guessOneOf();
+                        
                         this.processInherit(this.oneOf[this.oneOfSelected]);
                     }
+                },
 
-                    //if( root ) {
-                        this.updatePatternProps(schema);
-                    //}
 
+                // given the current definitions and data properties, guess what type of 'oneOf' should be
+                // initially selected.
+                guessOneOf : function() {
+                    console.log(this.key +' --------------------');
+
+                    var scores = [];
+                    for( var i = 0; i < this.oneOf.length; i++ ) {
+                        var score = 0;
+
+                        // TODO, handle non-objects
+                        var objInput = document.createElement('cwn-schema-object-input');
+                        objInput.parentSchema = this.parentSchema;
+                        objInput.inherit(this.oneOf[i], false);
+
+                        for( var j = 0; j < objInput.objProperties.length; j++ ){
+                            var prop = objInput.objProperties[j];
+
+                            if( !this.refData[prop.key] ) continue;
+                            
+                            score += 2;
+
+                            if( prop.schema && prop.schema.enum ) {
+                                if( !Array.isArray(prop.schema.enum) ) continue;
+
+                                for( var z = 0; z < prop.schema.enum.length; z++ ) {
+                                    if( this.refData[prop.key].toLowerCase() == prop.schema.enum[z].toLowerCase() ) {
+                                        score += 5;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        scores.push(score);
+                    }
+
+                    var top = -1;
+                    var selected = 0;
+                    for( var i = 0; i < scores.length; i++ ) {
+                        if( top < scores[i] ) {
+                            top = scores[i];
+                            selected = i;
+                        }
+                    }
+
+                    console.log(scores);
+                    console.log('selecting '+selected);
+                    console.log('------------------');
+
+                    this.oneOfSelected = selected;
                 },
 
                 updatePatternProps : function(schema) {
