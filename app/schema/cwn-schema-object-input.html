@@ -175,11 +175,11 @@
                         this.original = this.refData;
                     }
 
-                    /*if( typeof this.refData != 'object' ) {
+                    if( typeof this.refData === undefined ) {
                         if( this.key ) this.data[this.key] = {};
                         else this.data = {};
                         this.refData = {};
-                    }*/
+                    }
                 },
 
                 loadSchema : function() {

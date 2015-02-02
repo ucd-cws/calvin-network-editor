@@ -77,8 +77,10 @@
             },
 
             onChange : function() {
-                if( !this.data[this.key] === undefined ) this.data[this.key] = [];
-                if( !Array.isArray(this.data[this.key]) ) this.data[this.key] = [];
+                //if( !this.data[this.key] === undefined ) this.data[this.key] = [];
+                //if( !Array.isArray(this.data[this.key]) ) this.data[this.key] = [];
+                if( !this.data === undefined ) this.data = [];
+                else if( !Array.isArray(this.data) ) this.data = [];
 
                 this.debug = JSON.stringify(this.schema);
             },
