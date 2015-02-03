@@ -17,23 +17,27 @@
             }
         </style>
 
+        <div>input: {{rand}}</div>
+
+
         <cwn-schema-single-input-wrapper arrayInput?="{{arrayInput}}">
             <div label>
                 <div>{{key}}</div>
                 <div>{{schema.title}}</div>
             </div>
             <template bind if="{{schema.type == 'string' && !schema.enum}}">
-                <input type="text" value="{{data[key]}}" class="form-control" />
+                <input type="text" value="{{value}}" on-change="{{onValueChange}}" class="form-control" />
             </template>
 
             <template bind if="{{schema.type == 'enum' || schema.enum}}">
                 <template bind if="{{schema.enum.length == 1}}">
                     <input type="text" class="form-control" disabled value="{{schema.enum[0]}}">
                 </template>
+
                 <template bind if="{{schema.enum.length > 1}}">
-                    <select value="{{data[key]}}" class="form-control">
+                    <select value="{{value}}" on-change="{{onValueChange}}" class="form-control">
                         <template repeat="{{enum in schema.enum}}">
-                            <option value="{{enum}}" selected?="{{enum == data[key]}}">{{enum}}</option>
+                            <option value="{{enum}}" selected?="{{enum == value}}">{{enum}}</option>
                         </template>
                     </select>
                 </template>
@@ -44,7 +48,7 @@
             </template>
 
             <template bind if="{{schema.type == 'number'}}">
-                <input type="number" value="{{data[key]}}" class="form-control" />
+                <input type="number" value="{{value}}" on-change="{{onValueChange}}" class="form-control" />
             </template>
             
             <div class="static">
@@ -65,13 +69,17 @@
             data : '',
             schema : {},
             key : '',
+            value : '',
+
             debug : '',
             arrayInput : false,
+            init : false,
+            rand : '',
 
             knownTypes : ['enum', 'null', 'string', 'number'],
 
             observe : {
-                data : 'onChange',
+                data : 'onDataChange',
                 schema : 'onChange'
             },
 
@@ -79,9 +87,23 @@
                 //console.log('Input: '+this.key);
                 //console.log(this.data);
             },
+            attached : function(){
+                this.rand = Math.random() * 10000; 
+
+            },
+
+            onDataChange : function() {
+                this.value = this.data[this.key];
+            },
+
+            onValueChange : function() {
+                this.data[this.key] = this.value;
+            },
 
             onChange : function() {
-                if( !this.data || !this.schema ) return;
+                if( !this.data ) return;
+
+                this.init = true;
 
                 // TODO: what is the real condition here
                 if( this.data[this.key] === undefined && Array.isArray(this.data) ) {

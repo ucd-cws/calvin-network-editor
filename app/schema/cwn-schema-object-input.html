@@ -113,6 +113,7 @@
                 opened : true,
 
                 oneOf : [],
+                oneOfSnapshots : [],
                 oneOfSelected : -1,
                 anyOf : [],
                 custom : [],
@@ -138,6 +139,7 @@
                     //console.log(this.data);
 
                     this.oneOf = [];
+                    this.oneOfSnapshots = [];
                     this.anyOf = [];
                     this.isA = [];
                     this.objProperties = [];
@@ -211,8 +213,11 @@
 
                     if( schema.oneOf && root && this.oneOfSelected == -1) {
                         for( var i = 0; i < schema.oneOf.length; i++ ) {
-                            this.oneOf.push(this.processOneOrAnyOf(schema.oneOf[i]));
+                            var def = this.processOneOrAnyOf(schema.oneOf[i]);
+                            this.oneOf.push(def);
+                            this.oneOfSnapshots.push(this.processSnapshot(def));
                         }
+                        console.log(this.oneOfSnapshots)
                     } 
 
                     if( schema.allOf ) {
@@ -232,10 +237,31 @@
                 },
 
 
+                processSnapshot : function(def) {
+                    var type = def.type;
+                    if( !type && this.isTypeObject(def) ) type = 'object';
+
+
+                    if( type == 'object' && typeof this.data == 'object' && !Array.isArray(this.data[this.key]) ) {
+                        return $.extend(true, {}, this.data[this.key]);
+                    } else if( def.type == 'object' ) {
+                        return {};
+                    }
+
+                    if( type == 'array' && Array.isArray(this.data[this.key]) ) {
+                        return $.extend(true, [], this.data[this.key]);
+                    } else if ( def.type == 'array' ) {
+                        return [];
+                    }
+
+                    return '';
+                },
+
+
                 // given the current definitions and data properties, guess what type of 'oneOf' should be
                 // initially selected.
                 guessOneOf : function() {
-                    console.log(this.key +' --------------------');
+                    //console.log(this.key +' --------------------');
 
                     var scores = [];
                     for( var i = 0; i < this.oneOf.length; i++ ) {
@@ -299,9 +325,9 @@
                         }
                     }
 
-                    console.log(scores);
-                    console.log('selecting '+selected);
-                    console.log('------------------');
+                    //console.log(scores);
+                    //console.log('selecting '+selected);
+                    //console.log('------------------');
 
                     this.oneOfSelected = selected;
                 },
@@ -357,6 +383,8 @@
                     this.anyOf = [];
                     this.allOf = [];
                     this.custom = [];
+
+                    this.data[this.key] = this.oneOfSnapshots[this.oneOfSelected];
 
                     this.inherit(this.schema, true);
                 },

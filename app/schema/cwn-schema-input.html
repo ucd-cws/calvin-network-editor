@@ -24,6 +24,8 @@
             }
         </style>
 
+        <div>input-wrapper: {{rand}}</div>
+
         <!-- stamp out by schema type -->
         <template bind if="{{schema.type == 'object'}}">
             <cwn-schema-object-input schema="{{schema}}" parentSchema="{{parentSchema}}" data="{{data}}" key="{{key}}" showKey="{{showKey}}"></cwn-schema-object-input>
@@ -48,8 +50,14 @@
             schema : {},
             arrayInput : false,
 
+            rand : '',
+
             observe : {
                 'schema.type' : 'setClass'
+            },
+
+            attached : function() {
+                this.rand = Math.random() * 10000; 
             },
 
             setClass : function() {
