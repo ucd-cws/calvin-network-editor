@@ -17,8 +17,6 @@
             }
         </style>
 
-        <div>input: {{rand}}</div>
-
 
         <cwn-schema-single-input-wrapper arrayInput?="{{arrayInput}}">
             <div label>
@@ -74,22 +72,12 @@
             debug : '',
             arrayInput : false,
             init : false,
-            rand : '',
 
             knownTypes : ['enum', 'null', 'string', 'number'],
 
             observe : {
                 data : 'onDataChange',
                 schema : 'onChange'
-            },
-
-            ready : function() {
-                //console.log('Input: '+this.key);
-                //console.log(this.data);
-            },
-            attached : function(){
-                this.rand = Math.random() * 10000; 
-
             },
 
             onDataChange : function() {
