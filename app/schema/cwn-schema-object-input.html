@@ -16,9 +16,6 @@
             }
         </style>
 
-
-
-
             <div layout horizontal>
                 <div hidden?="{{!showKey}}" style="padding: 10px">{{key}}</div>
                 <div flex>
@@ -103,55 +100,73 @@
             var fs = require('fs');
 
             Polymer('cwn-schema-object-input', {
+                // info for if this is the first object
                 rootDir : '',
                 file : '',
+
+                // attribute name
                 key : '',
+
+                // JSON schema
                 schema : {},
+                // parents JSON schema (may be required for ref lookups)
                 parentSchema : {},
+
+                // show the attribute key in the UI
                 showKey : true,
                 
+                // open or close the toogle
                 opened : true,
 
+                // list of optional types
                 oneOf : [],
+                // list of data snapshots for each optional type
                 oneOfSnapshots : [],
+                // currently selected oneOf type
                 oneOfSelected : -1,
+
+                // inherited types
                 anyOf : [],
+                // custom variable definitions
                 custom : [],
 
-                // array of inherited refrences
-                isA : [],
-
+                // defined properties for all inherited types
+                // this does not include custom properties
                 objProperties : [],
 
+                // parent data, required for updating using provided key
                 data : {},
+                // reference data, aka this.data[this.key]
                 refData : {},
+
+                // snapshot of the original data when the object was first loaded/rendered
                 original : null,
 
                 error : '',
                 debug : '',
 
+                // make sure the type info is correct on load
                 observe : {
                     data : 'checkType'
                 },
 
                 ready : function() {
-                    //console.log('Object: '+this.key);
-                    //console.log(this.data);
 
                     this.oneOf = [];
                     this.oneOfSnapshots = [];
                     this.anyOf = [];
-                    this.isA = [];
                     this.objProperties = [];
                     this.custom = [];
 
                 },
 
+                // ready right after we attach
                 attached : function(callback) {
                     this.async(this.init);
                 },
 
                 init : function() {
+                    // are we loading from the filesystem?
                     if( this.file ) {
                         this.loadSchema();
                     } 
@@ -159,31 +174,43 @@
                     
                     this.debug = JSON.stringify(this.schema);
 
+                    // inherit all information from the schema
                     this.inherit(this.schema, true);
                 },
 
+                // toggle the collapse panel
                 toggle : function() {
                     this.opened = !this.opened;
                 },
 
+                // called when this.data changes
                 checkType : function() {
+                    // set the reference data
                     this.refData = this.key ? this.data[this.key] : this.data;
 
-                    if( Array.isArray(this.refData) ) {
-                        this.original = $.extend(true, [], this.refData);
-                    } else if ( typeof this.data === 'object' ) {
-                        this.original = $.extend(true, {}, this.refData);
-                    } else {
-                        this.original = this.refData;
+                    // clone original snapshot or set as data
+                    if( !this.original ) {
+                        if( Array.isArray(this.refData) ) {
+                            this.original = $.extend(true, [], this.refData);
+                        } else if ( typeof this.data === 'object' ) {
+                            this.original = $.extend(true, {}, this.refData);
+                        } else {
+                            this.original = this.refData;
+                        }
                     }
+                    
 
+                    // make sure something exists
                     if( typeof this.refData === undefined ) {
                         if( this.key ) this.data[this.key] = {};
                         else this.data = {};
                         this.refData = {};
                     }
+
+                    console.log('Data changed: '+this.key);
                 },
 
+                // load schema from disk
                 loadSchema : function() {
                     var file = this.rootDir+'/'+this.file;
                     if( !fs.existsSync(file) ) {
@@ -195,14 +222,19 @@
                     this.schema = JSON.parse(data);
                 },
 
+                // load all schema properties
+                // the root flag defines if this is the main schema (first pass) or
+                // a child schema (second+ pass). 
                 inherit : function(schema, root) {
-
+                    // first we are going to set all of the defined object properties
                     if( schema.properties  ) {
                         for( var key in schema.properties ) {
                             this.processProperty(key, schema.properties[key]);
                         }
                     }
 
+                    // optional inherit types
+                    // TODO: this is not implemented yet
                     if( schema.anyOf ) {
                         var arr = [];
                         for( var i = 0; i < schema.anyOf.length; i++ ) {
@@ -211,25 +243,29 @@
                         this.anyOf.push(arr);
                     }
 
+                    // oneOf object selection, only supporting first level 'oneOf' inheritence at the moment
                     if( schema.oneOf && root && this.oneOfSelected == -1) {
                         for( var i = 0; i < schema.oneOf.length; i++ ) {
                             var def = this.processOneOrAnyOf(schema.oneOf[i]);
                             this.oneOf.push(def);
-                            this.oneOfSnapshots.push(this.processSnapshot(def));
+                            
+                            // think this may be bad idea, it binds all data to a certain type
+                            // could be very annoying.. 
+                            //this.oneOfSnapshots.push(this.processSnapshot(def));
                         }
-                        console.log(this.oneOfSnapshots)
                     } 
 
+                    // inherit the 'allOf' types
                     if( schema.allOf ) {
                         for( var i = 0; i < schema.allOf.length; i++ ) {
                             this.processInherit(schema.allOf[i]);
                         }
                     } 
                     
-                    // might need to insert the init select oneOf here
-
+                    // set the custom property types
                     this.updatePatternProps(schema);
 
+                    // load the oneOf type, attempt to guess which one if data exists
                     if( root && this.oneOf.length > 0) {
                         if( this.oneOfSelected == -1 ) this.guessOneOf();
                         this.processInherit(this.oneOf[this.oneOfSelected]);
@@ -293,6 +329,13 @@
                         var objInput = document.createElement('cwn-schema-object-input');
                         objInput.parentSchema = this.parentSchema;
                         objInput.inherit(this.oneOf[i], false);
+
+                        if( !this.refData ) {
+                            scores.push(score);
+                            continue;
+                        }
+
+                        score += 5; // get 5 for just getting this far
 
                         for( var j = 0; j < objInput.objProperties.length; j++ ){
                             var prop = objInput.objProperties[j];
@@ -384,7 +427,16 @@
                     this.allOf = [];
                     this.custom = [];
 
-                    this.data[this.key] = this.oneOfSnapshots[this.oneOfSelected];
+                    //this.data[this.key] = this.oneOfSnapshots[this.oneOfSelected];
+                    //this.refData = this.data[this.key];
+                    /*if( Array.isArray(this.original) ) {
+                        this.data[this.key] = $.extend(true, [], this.original);
+                    } else if ( typeof this.data === 'object' ) {
+                        this.data[this.key] = $.extend(true, {}, this.original);
+                    } else {
+                        this.data[this.key] = this.original;
+                    }
+                    this.refData = this.data[this.key];*/
 
                     this.inherit(this.schema, true);
                 },
@@ -449,7 +501,11 @@
                         return alert('Invalid attribute name "'+propDef.tmpName+'".  Must match: '+propDef.pattern);
                     }
 
-                    this.data[propDef.tmpName] = '';
+                    if( !this.data[this.key] || typeof this.data[this.key] != 'object' || Array.isArray(this.data[this.key]) ) {
+                        this.data[this.key] = {};
+                    }
+
+                    this.data[this.key][propDef.tmpName] = '';
                     propDef.data.push({
                         key : propDef.tmpName,
                         value : ''

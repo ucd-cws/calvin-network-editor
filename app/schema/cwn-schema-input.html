@@ -32,7 +32,7 @@
             <cwn-schema-array-input schema="{{schema}}" parentSchema="{{parentSchema}}" data="{{data}}" key="{{key}}"></cwn-schema-array-input>
         </template>
         <template bind if="{{schema.type == 'reference'}}">
-            <a>External Reference Link</a>
+            <a on-click="{{fireEditExteneral}}">Edit</a> External Reference Link
         </template>
         <template bind if="{{schema.type != 'array' && schema.type != 'object' && schema.type != 'reference'}}">
             <cwn-schema-single-input schema="{{schema}}" data="{{data}}" key="{{key}}" arrayInput?="{{arrayInput}}"></cwn-schema-single-input>
@@ -54,6 +54,15 @@
 
             setClass : function() {
                 this.className = this.schema.type || 'unknown';
+            },
+
+            fireEditExteneral : function() {
+                this.fire('edit-external', {
+                    schema : this.schema,
+                    data : this.data,
+                    key : this.key,
+                    parentSchema : this.parentSchema
+                });
             }
 
         });

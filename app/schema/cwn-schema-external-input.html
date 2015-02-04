@@ -1,0 +1,37 @@
+<polymer-element name="cwn-schema-external-input" attributes="data schema parentSchema key">
+    <template>
+        <div>
+            <a class="btn btn-link" on-click="{{fireDone}}">Done</a>
+        </div>
+        <div>
+            Type 
+            <select>
+                <option>CSV</option>
+                <option>Markdown</option>
+            </select>
+        </div>
+        <div>
+            <mark-down-editor></mark-down-editor>
+        </div>
+    </template>
+    <script>
+        Polymer('cwn-schema-external-input', {
+
+            refData : {},
+
+            observe : {
+                data : 'onDataUpdate'
+            },
+
+            onDataUpdate : function() {
+                console.log(this.data);
+                this.refData = this.data[this.key];
+            },
+
+            fireDone : function() {
+                this.fire('done');
+            }
+
+        });
+    </script>
+</polymer-element>

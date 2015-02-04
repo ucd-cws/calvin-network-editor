@@ -12,14 +12,25 @@
 
         <button class="btn btn-default pull-right" on-click="{{dump}}">dump</button>
 
-        <template bind if="{{rootDir && data}}">
+        <template bind if="{{rootDir && data && showData}}">
             <cwn-schema-object-input  
                 rootDir="{{rootDir}}"
                 file="{{file}}" 
                 data="{{data}}"
                 schema="{}"
-                parentSchema="{}">
+                parentSchema="{}"
+                on-edit-external="{{showEditExternal}}">
             </cwn-schema-object-input>
+        </template>
+
+        <template bind if="{{showExternal}}">
+            <cwn-schema-external-input  
+                data="{{externalInfo.data}}"
+                schema="{{externalInfo.schema}}"
+                parentSchema="{{externalInfo.parentSchema}}"
+                key="{{externalInfo.key}}"
+                on-done="{{showEditData}}">
+            </cwn-schema-external-input>
         </template>
     </template>
     <script>
@@ -33,6 +44,10 @@
                 file : '',
                 data : null,
 
+                showData : true,
+                showExternal : false,
+                externalInfo : {},
+
                 observe : {
                     rootDir : 'onRootDirChange'
                 },
@@ -40,6 +55,17 @@
                 ready : function() {
                     var dir = window.localStorage.getItem('schemaRootDir');
                     if( dir ) this.rootDir = dir;
+                },
+
+                showEditExternal : function(e) {
+                    this.showData = false;
+                    this.showExternal = true;
+                    this.externalInfo = e.detail;
+                },
+
+                showEditData : function() {
+                    this.showData = true;
+                    this.showExternal = false;
                 },
 
                 chooseFile : function() {
