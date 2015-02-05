@@ -354,6 +354,8 @@
                         // TODO, handle non-objects
                         var objInput = document.createElement('cwn-schema-object-input');
                         objInput.parentSchema = this.parentSchema;
+                        objInput.data = this.data;
+                        objInput.key = this.key;
                         objInput.inherit(this.oneOf[i], false);
 
                         if( !refData ) {
@@ -409,13 +411,14 @@
                             var regex = new RegExp(key);
                             var data = [];
                             
-                            if( d ) {
+                            if( d !== undefined ) {
                                 for( var datakey in d ) {
                                     if( this.isControlledProp(datakey) || !datakey.match(regex) ) continue;
                                     
                                     data.push({
                                         key : datakey,
-                                        value : d[datakey]
+                                        //value : d[datakey]
+                                        value : d
                                     });
                                 }
                             }
