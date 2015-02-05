@@ -52,8 +52,15 @@
                         </template>
 
                         <template repeat="{{item, i in objProperties}}">
-                            <cwn-schema-input 
+                            <!--<cwn-schema-input 
+                                path="{{mypath}}"
                                 data="{{refData}}"
+                                key="{{item.key}}"
+                                schema="{{item.schema}}"
+                                parentSchema="{{item.parentSchema}}">
+                            </cwn-schema-input>-->
+                            <cwn-schema-input 
+                                data="{{item.data}}"
                                 key="{{item.key}}"
                                 schema="{{item.schema}}"
                                 parentSchema="{{item.parentSchema}}">
@@ -111,6 +118,8 @@
                 // attribute name
                 key : '',
 
+                path : '',
+
                 // JSON schema
                 schema : {},
                 // parents JSON schema (may be required for ref lookups)
@@ -125,7 +134,7 @@
                 // list of optional types
                 oneOf : [],
                 // list of data snapshots for each optional type
-                oneOfSnapshots : [],
+                oneOfSnapshots : {},
                 // currently selected oneOf type
                 oneOfSelected : -1,
 
@@ -141,7 +150,7 @@
                 // parent data, required for updating using provided key
                 data : {},
                 // reference data, aka this.data[this.key]
-                refData : {},
+                //refData : {},
 
                 // snapshot of the original data when the object was first loaded/rendered
                 original : null,
@@ -160,7 +169,7 @@
                 ready : function() {
 
                     this.oneOf = [];
-                    this.oneOfSnapshots = [];
+                    this.oneOfSnapshots = {};
                     this.anyOf = [];
                     this.objProperties = [];
                     this.custom = [];
@@ -178,11 +187,11 @@
                         this.loadSchema();
                     } 
                     if( !this.schema ) return;
-                    
-                    this.debug = JSON.stringify(this.schema);
 
                     // inherit all information from the schema
                     this.inherit(this.schema, true);
+
+                    
                 },
 
                 // toggle the collapse panel
@@ -202,29 +211,28 @@
 
                 // called when this.data changes
                 checkType : function() {
-                    // set the reference data
-                    this.refData = this.key ? this.data[this.key] : this.data;
 
-                    // clone original snapshot or set as data
-                    if( !this.original ) {
-                        if( Array.isArray(this.refData) ) {
-                            this.original = $.extend(true, [], this.refData);
-                        } else if ( typeof this.data === 'object' ) {
-                            this.original = $.extend(true, {}, this.refData);
-                        } else {
-                            this.original = this.refData;
-                        }
-                    }
-                    
+                    // set the reference data
+                    var refData = this.getRefData(this.key);
 
                     // make sure something exists
-                    if( typeof this.refData === undefined ) {
+                    // TODO: do we need to check schema type 
+                    /*if( this.refData === undefined ) {
                         if( this.key ) this.data[this.key] = {};
                         else this.data = {};
                         this.refData = {};
-                    }
+                    }*/
 
-                    console.log('Data changed: '+this.key);
+                    // clone original snapshot or set as data
+                    if( !this.original ) {
+                        if( Array.isArray(refData) ) {
+                            this.original = $.extend(true, [], refData);
+                        } else if ( typeof this.data === 'object' ) {
+                            this.original = $.extend(true, {}, refData);
+                        } else {
+                            this.original = refData;
+                        }
+                    }
                 },
 
                 // load schema from disk
@@ -315,6 +323,7 @@
                 // initially selected.
                 guessOneOf : function() {
                     //console.log(this.key +' --------------------');
+                    var refData = this.getRefData(this.key);
 
                     var scores = [];
                     for( var i = 0; i < this.oneOf.length; i++ ) {
@@ -326,14 +335,14 @@
                         }
 
                         if ( def.type == 'array' ) {
-                            if( Array.isArray(this.refData) ) {
+                            if( Array.isArray(refData) ) {
                                 score += 100;
                             }
                             scores.push(score);
                             continue;
                         } else if( def.type != 'object' ) {
                             if( def.type == 'null' ) {
-                                if( this.refData == 'null' || this.refData === null ) {
+                                if( refData == 'null' || refData === null ) {
                                     score += 100;
                                 }
                             }
@@ -347,7 +356,7 @@
                         objInput.parentSchema = this.parentSchema;
                         objInput.inherit(this.oneOf[i], false);
 
-                        if( !this.refData ) {
+                        if( !refData ) {
                             scores.push(score);
                             continue;
                         }
@@ -357,7 +366,7 @@
                         for( var j = 0; j < objInput.objProperties.length; j++ ){
                             var prop = objInput.objProperties[j];
 
-                            if( !this.refData[prop.key] ) continue;
+                            if( !this.data[this.key][prop.key] ) continue;
                             
                             score += 2;
 
@@ -365,7 +374,7 @@
                                 if( !Array.isArray(prop.schema.enum) ) continue;
 
                                 for( var z = 0; z < prop.schema.enum.length; z++ ) {
-                                    if( this.refData[prop.key].toLowerCase() == prop.schema.enum[z].toLowerCase() ) {
+                                    if( this.data[this.key][prop.key].toLowerCase() == prop.schema.enum[z].toLowerCase() ) {
                                         score += 10;
                                         break;
                                     }
@@ -456,6 +465,42 @@
                     this.refData = this.data[this.key];*/
 
                     this.inherit(this.schema, true);
+
+                    var refData = this.getRefData(this.key);
+                    var type = typeof refData;
+                    if( Array.isArray(refData) ) type = 'array';
+                    this.oneOfSnapshots[type] = refData;
+
+                    // here we need to check if we are switching types (object, array, literal)
+                    if( this.custom.length > 0 || this.objProperties.length > 1 ) {
+                        this.data[this.key] = this.oneOfSnapshots.object || {};
+                        console.log('Switching to object type');
+                    } else if ( this.objProperties.length == 1 ) {
+                        var type = this.getType(this.objProperties[0].schema)
+
+                        if( this.oneOfSnapshots[type] ) {
+                            this.data[this.key] = this.oneOfSnapshots[type];
+                        } else if ( type == 'object' ) {
+                            this.data[this.key] = {};
+                        } else if ( type == 'array' ) {
+                            this.data[this.key] = [];
+                        } else {
+                            this.data[this.key] = '';
+                        }
+                        
+                    } else {
+                        console.log('unknown');
+                        // setting as object for now
+                        this.data[this.key] = {};
+                    }
+
+                    // when our type if updated, clear everything
+                    this.objProperties = [];
+                    this.anyOf = [];
+                    this.allOf = [];
+                    this.custom = [];
+
+                    this.inherit(this.schema, true);
                 },
 
                 processOneOrAnyOf : function(def) {
@@ -488,12 +533,14 @@
                     var prop;
                     if( typeDef.$ref ) {
                         prop = {
+                            data : this.key ? this.data[this.key] : this.data,
                             key : key,
                             schema : CWN.schemaEditor.loadRef(typeDef.$ref, this.schema, this.parentSchema),
                             parentSchema : this.schema
                         };
                     } else {
                         prop = {
+                            data : this.key ? this.data[this.key] : this.data,
                             key : key,
                             schema : typeDef,
                             parentSchema : this.schema
@@ -522,10 +569,16 @@
                         this.data[this.key] = {};
                     }
 
-                    this.data[this.key][propDef.tmpName] = '';
+                    var value = '';
+                    var type = propDef.schema.type;
+                    if( !type && this.isTypeObject(propDef.schema) ) type = 'object';
+                    if( type == 'object' ) value = {};
+                    else if ( type == 'array' ) value = [];
+
+                    this.data[this.key][propDef.tmpName] = value;
                     propDef.data.push({
                         key : propDef.tmpName,
-                        value : ''
+                        value : this.data[this.key]
                     });
 
                     propDef.tmpName = '';
@@ -554,6 +607,16 @@
                         if( def[objKeys[i]] ) return true;  
                     }
                     return false;
+                },
+
+                getType : function(def) {
+                    var type = def.type;
+                    if( !type && this.isTypeObject(def) ) return 'object';
+                    return type;
+                },
+
+                getRefData : function(key) {
+                    return key ? this.data[key] : this.data;
                 }
 
             });

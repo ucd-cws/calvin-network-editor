@@ -82,6 +82,7 @@
 
             onDataChange : function() {
                 this.value = this.data[this.key];
+
             },
 
             onValueChange : function() {
@@ -118,7 +119,6 @@
                 if( this.knownTypes.indexOf(this.schema.type) == -1 ) {
                     this.schema.unknown = true;
                 }
-                this.debug = JSON.stringify(this.schema);
             }
         });
     </script>
