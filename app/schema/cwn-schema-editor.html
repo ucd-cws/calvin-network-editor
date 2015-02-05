@@ -10,16 +10,19 @@
             <div>File: {{file}}</div>
         </div>
 
-        <button class="btn btn-default pull-right" on-click="{{dump}}">dump</button>
+        <button class="btn btn-default pull-right" on-click="{{diff}}" hidden?="{{showExternal}}">diff</button>
 
-        <template bind if="{{rootDir && data && showData}}">
-            <cwn-schema-object-input  
+        <template bind if="{{rootDir && data && !showExternal}}">
+            <cwn-schema-object-input
+                id="main"
+                hidden?="{{showExpanded || showDiff}}"
                 rootDir="{{rootDir}}"
                 file="{{file}}" 
                 data="{{data}}"
                 schema="{}"
                 parentSchema="{}"
-                on-edit-external="{{showEditExternal}}">
+                on-edit-external="{{showEditExternal}}"
+                on-expand="{{toggleExpand}}">
             </cwn-schema-object-input>
         </template>
 
@@ -32,6 +35,24 @@
                 on-done="{{showEditData}}">
             </cwn-schema-external-input>
         </template>
+
+
+        <template bind if="{{showExpanded}}">
+            <cwn-schema-object-input
+                expanded
+                data="{{expandInfo.data}}"
+                schema="{{expandInfo.schema}}"
+                parentSchema="{{expandInfo.parentSchema}}"
+                key="{{expandInfo.key}}"
+                on-expand="{{toggleExpand}}">
+            </cwn-schema-object-input>
+        </template>
+
+        <div layout horizontal hidden?="{{!showDiff}}">
+            <div id="diff1" flex></div>
+            <div id="diff2" flex></div>
+        </div>
+
     </template>
     <script>
         (function(){
@@ -44,9 +65,13 @@
                 file : '',
                 data : null,
 
-                showData : true,
+                showExpanded : false,
+                expandInfo : {},
+
                 showExternal : false,
                 externalInfo : {},
+
+                showDiff : false,
 
                 observe : {
                     rootDir : 'onRootDirChange'
@@ -58,14 +83,17 @@
                 },
 
                 showEditExternal : function(e) {
-                    this.showData = false;
                     this.showExternal = true;
                     this.externalInfo = e.detail;
                 },
 
                 showEditData : function() {
-                    this.showData = true;
                     this.showExternal = false;
+                },
+
+                toggleExpand : function(e) {
+                    this.showExpanded = e.detail.expand;
+                    if( this.showExpanded ) this.expandInfo = e.detail;
                 },
 
                 chooseFile : function() {
@@ -89,8 +117,20 @@
                     window.localStorage.setItem('schemaRootDir', this.rootDir);
                 },
 
-                dump : function() {
-                    console.log(this.data);
+                diff : function() {
+                    this.showDiff = !this.showDiff;
+                    if( !this.showDiff ) return;
+
+                    var main = this.shadowRoot.querySelector('#main');
+                    var diff1 = this.strToHtml(JSON.stringify(main.original, '', '  '));
+                    var diff2 = this.strToHtml(JSON.stringify(main.data, '', '  '));
+
+                    this.shadowRoot.querySelector('#diff1').innerHTML = diff1;
+                    this.shadowRoot.querySelector('#diff2').innerHTML = diff2;
+                },
+
+                strToHtml : function(str) {
+                    return str.replace(/ /g, '&nbsp;').replace(/\n/g,'<br />');
                 }
 
             });

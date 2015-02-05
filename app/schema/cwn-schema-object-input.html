@@ -1,4 +1,4 @@
-<polymer-element name="cwn-schema-object-input" attributes="rootDir file schema data key parentSchema showKey">
+<polymer-element name="cwn-schema-object-input" attributes="rootDir file schema data key parentSchema expanded showKey">
     <template>
         <style>
             h4 {
@@ -20,9 +20,13 @@
                 <div hidden?="{{!showKey}}" style="padding: 10px">{{key}}</div>
                 <div flex>
                     <div style="text-align: right">
+                        <a class="btn btn-link" on-click="{{fireExpand}}">
+                            <cwn-icon icon="fa-expand" hidden?="{{expanded}}"></cwn-icon>
+                            <cwn-icon icon="fa-compress" hidden?="{{!expanded}}"></cwn-icon>
+                        </a>
                         <a class="btn btn-link" on-click="{{toggle}}">
-                            <span hidden?="{{!opened}}">-</span>
-                            <span hidden?="{{opened}}">+</span>
+                            <span hidden?="{{!opened}}"><cwn-icon icon="fa-minus-square-o"></cwn-icon></span>
+                            <span hidden?="{{opened}}"><cwn-icon icon="fa-plus-square-o"></cwn-icon></span>
                         </a>
                     </div>
 
@@ -145,6 +149,9 @@
                 error : '',
                 debug : '',
 
+                // are we the root expanded version?
+                expanded : false,
+
                 // make sure the type info is correct on load
                 observe : {
                     data : 'checkType'
@@ -181,6 +188,16 @@
                 // toggle the collapse panel
                 toggle : function() {
                     this.opened = !this.opened;
+                },
+
+                fireExpand : function() {
+                    this.fire('expand', {
+                        expand : !this.expanded,
+                        schema : this.schema,
+                        data : this.data,
+                        key : this.key,
+                        parentSchema : this.parentSchema
+                    })
                 },
 
                 // called when this.data changes
