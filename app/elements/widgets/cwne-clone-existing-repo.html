@@ -1,117 +1,136 @@
-<polymer-element name="cwne-clone-existing-repo">
+
+<dom-element id="cwne-clone-existing-repo">
+    <style>
+        .select-btn {
+            margin: 5px;
+        }
+        .panel {
+            padding: 10px;
+        }
+        .page-header {
+            margin-top: 10px !important;
+            margin-bottom: 5px !important;
+        }
+        .help {
+            padding: 20px;
+            color: #888;
+        }
+    </style>
     <template>
-        <style>
-            .select-btn {
-                margin: 5px;
-            }
-            .panel {
-                padding: 10px;
-            }
-            .page-header {
-                margin-top: 10px !important;
-                margin-bottom: 5px !important;
-            }
-            .help {
-                padding: 20px;
-                color: #888;
-            }
-        </style>
-
+        
         <h3 style="text-align:center" class="page-header">Clone Remote Git Repository</h3>
-
 
         <div class="panel">
             <h4>Git Repository URL</h4>
-            <input type="text" class="form-control" placeholder="ex: https://github.com/ucd-cws/calvin-network-data.git" value="{{selectedUrl}}" />
+            <input type="text" 
+                id="gitUrl"
+                class="form-control" 
+                placeholder="ex: https://github.com/ucd-cws/calvin-network-data.git" 
+                on-change="updateRepoName" />
         </div>
 
-        <div hidden?="{{!selectedUrl}}" class="panel">
-            <h4 class='page-header'>Choose local directory to clone remote respositry into.</h4>
-            <input style="display:none;" id="fileDialog" type="file" on-change="{{onSelect}}" webkitdirectory />
-            <a class="btn btn-default" on-click="{{chooseFile}}" ><cwn-icon icon="fa-folder-o"></cwn-icon> Pick</a>
+        <div id="chooseDirPanel" class="panel" style="display:none">
+            <h4 class="page-header">Choose local directory to clone remote respositry into.</h4>
+            <input style="display:none;" id="fileDialog" type="file" on-change="onSelect" webkitdirectory />
+            <a class="btn btn-default" on-click="chooseFile" ><i class="fa fa-folder-o"></i> Pick</a>
         </div>
 
-        <div hidden?="{{!cloneDir}}" class="panel">
+        <div id="clonePanel" style="display: none" class="panel">
             <div class="alert alert-success">
-                <div>Ready to clone remote git repo <b>{{selectedUrl}}</b></div>
-                <div>Then clone it into <b>{{cloneDir}}/{{repoName}}</b></div>
+                <div>Ready to clone remote git repo <b id="selectedUrlLabel"></b></div>
+                <div>Then clone it into <b id="repoLabel"></b></div>
             </div>
-            <div hidden?="{{running}}"><a class="btn btn-success" on-click="{{clone}}">Go</a></div>
-            <div hidden?="{{!running}}"><cwn-icon icon="fa-spinner fa-spin"></cwn-icon> {{runningMessage}}</div>
+            <div id="finishedLabel" style="display:none"><a class="btn btn-success" on-click="clone">Go</a></div>
+            <div id="runningLabel" style="display:none">
+                <i class="fa fa-spinner fa-spin"></i> Cloning Repo...</span>
+            </div>
         </div>
     </template>
-    <script>
-        (function(){
-            var request = requireNode('request');
-            var gui = requireNode('nw.gui');
-            var fs = requireNode('fs');
+</dom-module>
 
-            Polymer('cwne-clone-existing-repo', {
-                attempted : false,
-                selectedUrl : 'https://github.com/ucd-cws/calvin-network-data.git',
-                loading : false,
-                cloneDir : '',
-                running : false,
-                runningMessage : '',
-                repoName : 'calvin-network-data',
+<script>
+    (function(){
+        var request = requireNode('request');
+        var gui = requireNode('nw.gui');
+        var fs = requireNode('fs');
 
-                observe : {
-                    selectedUrl : 'updateRepoName'
-                },
+        Polymer({
+            is : 'cwne-clone-existing-repo',
 
-                reset : function() {
-                    this.attempted = false;
-                    this.selectedUrl = '';
-                    this.orgs = [];
-                    this.loading = false;
-                    this.user = null;
-                    this.cloneDir = '';
-                    this.running = false;
-                    this.runningMessage = '';
-                },
-
-                updateRepoName : function() {
-                    this.repoName = this.selectedUrl.replace(/^.*\//,'').replace(/\.git$/,'');
-                },
-
-                goTo : function(e) {
-                    var url = e.currentTarget.getAttribute('url');
-                    gui.Shell.openExternal(url);
-                },
-
-                chooseFile : function() {
-                    this.$.fileDialog.click();
-                },
-
-                onSelect : function(e) {
-                    this.cloneDir = this.$.fileDialog.value;
-
-                    if( fs.existsSync(this.cloneDir+'/'+this.repoName) ) {
-                        return alert('Directory already exists: '+this.cloneDir+'/'+this.repoName);
-                    }
-                },
-
-                clone : function() {
-
-                    if( fs.existsSync(this.cloneDir+'/'+this.repoName) ) {
-                        return alert('Directory already exists: '+this.cloneDir+'/'+this.repoName);
-                    }
-                    this.running = true;
-                    this.runningMessage = 'Cloning Repo...'
-
-                    CWN.git.clone(this.cloneDir, this.selectedUrl, function(err, resp){
-                        this.running = false;
-                        
-                        debugger;
-                        if( err ) return alert(err);
-
-                        alert('Success!');
-                        this.fire('repo-cloned', this.cloneDir+'/'+this.repoName);
-                        this.reset();
-                    }.bind(this));
+            configure : function() {
+                return {
+                    selectedUrl : 'https://github.com/ucd-cws/calvin-network-data.git',
+                    cloneDir : '',
+                    repoName : 'calvin-network-data',
                 }
-            });
-        })();
+            }
+            
+            ready : function() {
+                this.$.gitUrl.value = this.selectedUrl;
+            },
 
-    </script>
-</polymer-element>
+            reset : function() {
+                this.selectedUrl = '';
+                this.cloneDir = '';
+
+                this.$.finishedLabel.style.display = 'none';
+                this.$.runningLabel.style.display = 'none';
+                this.$.chooseDirPanel.style.display = 'none';
+                this.$.clonePanel.style.display = 'none';
+            },
+
+            updateRepoName : function() {
+                this.selectedUrl = this.$.gitUrl.value;
+                this.$.selectedUrlLabel.innerText = this.selectedUrl;
+
+                this.repoName = this.selectedUrl.replace(/^.*\//,'').replace(/\.git$/,'');
+
+                if( this.selectedUrl.length > 0 ) this.$.chooseDirPanel.style.display = 'block';
+                else this.$.chooseDirPanel.style.display = 'none';
+            },
+
+            goTo : function(e) {
+                var url = e.currentTarget.getAttribute('url');
+                gui.Shell.openExternal(url);
+            },
+
+            chooseFile : function() {
+                this.$.fileDialog.click();
+            },
+
+            onSelect : function(e) {
+                this.cloneDir = this.$.fileDialog.value;
+
+                if( fs.existsSync(this.cloneDir+'/'+this.repoName) ) {
+                    return alert('Directory already exists: '+this.cloneDir+'/'+this.repoName);
+                }
+
+                this.$.repoLabel.innerText = this.cloneDir+'/'+this.repoName;
+
+                if( this.cloneDir.length > 0 ) this.$.clonePanel.style.display = 'block';
+                else this.$.clonePanel.style.display = 'none';
+            },
+
+            clone : function() {
+                if( fs.existsSync(this.cloneDir+'/'+this.repoName) ) {
+                    return alert('Directory already exists: '+this.cloneDir+'/'+this.repoName);
+                }
+
+                this.$.runningLabel.style.display = 'block';
+
+                CWN.git.clone(this.cloneDir, this.selectedUrl, function(err, resp){
+                    this.running = false;
+
+                    if( err ) return alert(err);
+
+                    alert('Success!');
+                    this.fire('repo-cloned', this.cloneDir+'/'+this.repoName);
+                    this.reset();
+
+                    this.$.runningLabel.style.display = 'none';
+                    this.$.finishedLabel.style.display = 'block';
+                }.bind(this));
+            }
+        });
+    })();
+</script>
