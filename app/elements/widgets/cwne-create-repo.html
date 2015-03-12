@@ -1,250 +1,286 @@
-<polymer-element name="cwne-create-repo">
+<dom-module id="cwne-create-repo">
+    <style>
+        .select-btn {
+            margin: 5px;
+        }
+        .panel {
+            padding: 10px;
+        }
+        .page-header {
+            margin-top: 10px !important;
+            margin-bottom: 5px !important;
+        }
+        .help {
+            padding: 20px;
+            color: #888;
+        }
+    </style>
     <template>
-        <style>
-            .select-btn {
-                margin: 5px;
-            }
-            .panel {
-                padding: 10px;
-            }
-            .page-header {
-                margin-top: 10px !important;
-                margin-bottom: 5px !important;
-            }
-            .help {
-                padding: 20px;
-                color: #888;
-            }
-        </style>
-
         <h3 style="text-align:center" class="page-header">Create New Git Repository</h3>
-        <div class="help">Here you can fork an new <cwn-icon icon="fa-github"></cwn-icon> GitHub repository and clone it to your local machine.  You can also go <a on-click="{{goTo}}" url="https://github.com/ucd-cws/calvin-network-data">here</a> and fork the repository.  A <a on-click="{{goTo}}" url="https://github.com">GitHub Account</a> is required.</div>
+        <div class="help">Here you can fork an new <cwn-icon icon="fa-github"></cwn-icon> GitHub repository and clone it to your local machine.  You can also go <a on-click="goTo" url="https://github.com/ucd-cws/calvin-network-data">here</a> and fork the repository.  A <a on-click="goTo" url="https://github.com">GitHub Account</a> is required.</div>
 
 
         <div class="form-horizontal">
           <div class="form-group">
             <label for="inputUsername" class="col-sm-2 control-label">Username</label>
             <div class="col-sm-10">
-              <input type="text" class="form-control" id="inputUsername" placeholder="Github Username" value="{{username}}">
+              <input type="text" class="form-control" id="inputUsername" placeholder="Github Username">
             </div>
           </div>
           <div class="form-group">
             <label for="inputPassword" class="col-sm-2 control-label">Password</label>
             <div class="col-sm-10">
-              <input type="password" class="form-control" id="inputPassword" placeholder="Password" value="{{password}}">
+              <input type="password" class="form-control" id="inputPassword" placeholder="Password">
             </div>
           </div>
         </div>
 
-        <a class="btn btn-default" on-click="{{access}}" hidden?="{{loading}}">Access <cwn-icon icon="fa-github"></cwn-icon> GitHub</a>
-        <a class="btn btn-default disabled" hidden?="{{!loading}}"><cwn-icon icon="fa-spinner fa-spin"></cwn-icon> Accessing GitHub... </a>
+        <a class="btn btn-default" on-click="access" id="login">
+            Access <i class="fa fa-github"></i> GitHub
+        </a>
+        <a class="btn btn-default disabled" id="loginMessage" style="display:none">
+            <i icon="fa fa-spinner fa-spin"></i> Accessing GitHub... 
+        </a>
 
-        <div hidden?="{{!attempted || loading}}" class="panel" style="margin-top: 20px">
+        <div id="orgPanel" class="panel" style="margin-top: 20px; style: display:none">
             <h4 class="page-header">Select organization to fork git respository in.</h4>
-            <template repeat="{{org in orgs}}">
-                <a class="btn btn-default select-btn" on-click="{{selectOrg}}" org="{{org.name}}">
-                    <div layout horizontal>
-                        <img src="{{org.icon}}" class="img-circle" style="width:64px; height:64px">
-                        <div layout vertical>
-                            <div style="padding:5px"><b>{{org.type}}</b></div>
-                            <div style="padding:5px">{{org.name}}</div>
+
+            <template is="x-repeat" items="{{orgs}}">
+                <a class="btn btn-default select-btn" on-click="selectOrg" org$="[[item.name]]">
+                    <div class="layout horizontal">
+                        <img src="[[item.icon]]" class="img-circle" style="width:64px; height:64px">
+                        <div class="layout vertical">
+                            <div style="padding:5px"><b>[[item.type]]</b></div>
+                            <div style="padding:5px">[[item.name]]</div>
                         </div>
                     </div>
                 </a>
             </template> 
         </div>
 
-        <div hidden?="{{!selectedOrg}}" class="panel">
+        <div id="chooseDirPanel" class="panel" style="display:none">
             <h4 class='page-header'>Choose local directory to clone remote respositry into.</h4>
-            <input style="display:none;" id="fileDialog" type="file" on-change="{{onSelect}}" webkitdirectory />
-            <a class="btn btn-default" on-click="{{chooseFile}}" ><cwn-icon icon="fa-folder-o"></cwn-icon> Pick</a>
+            <input style="display:none;" id="fileDialog" type="file" on-change="onSelect" webkitdirectory />
+            <a class="btn btn-default" on-click="chooseFile" ><i class="fa fa-folder-o"></i> Pick</a>
         </div>
 
-        <div hidden?="{{!cloneDir}}" class="panel">
+        <div class="clonePanel" class="panel" style="display:none">
             <div class="alert alert-success">
-                <div>Ready to fork new git repo <b>https://github.com/{{selectedOrg}}/calvin-network-data</b></div>
-                <div>Into <b>{{cloneDir}}/{{repoName}}</b></div>
+                <div>Ready to fork new git repo <b id="gitRepoLabel"></b></div>
+                <div>Into <b id="newGitRepo"></b></div>
             </div>
-            <div hidden?="{{running}}"><a class="btn btn-success" on-click="{{run}}">Go</a></div>
-            <div hidden?="{{!running}}">{{runningMessage}}</div>
+            <div id="cloneLabel"><a class="btn btn-success" on-click="run">Go</a></div>
+            <div id="cloningLabel"></div>
         </div>
     </template>
-    <script>
-        (function(){
-            var request = requireNode('request');
-            var gui = requireNode('nw.gui');
-            var fs = requireNode('fs');
+</dom-module>
 
-            Polymer('cwne-create-repo', {
-                attempted : false,
-                username : '',
-                password : '',
-                selectedOrg : '',
-                orgs : [],
-                loading : false,
-                user : null,
-                cloneDir : '',
-                running : false,
-                runningMessage : '',
-                repoName : 'calvin-network-data',
+<script>
+    (function(){
+        var request = requireNode('request');
+        var gui = requireNode('nw.gui');
+        var fs = requireNode('fs');
 
-                reset : function() {
-                    this.attempted = false;
-                    this.username = '';
-                    this.password = '';
-                    this.selectedOrg = '';
-                    this.orgs = [];
-                    this.loading = false;
-                    this.user = null;
-                    this.cloneDir = '';
-                    this.running = false;
-                    this.runningMessage = '';
-                },
+        Polymer({
+            is : 'cwne-create-repo', 
 
-                access : function() {
-                    if( this.username.length == 0 || this.password.length == 0 ) {
-                        return alert('Please provide a username and password');
+            configure : function() {
+                return {
+                    attempted : false,
+                    username : '',
+                    password : '',
+                    selectedOrg : '',
+                    orgs : [],
+                    loading : false,
+                    user : null,
+                    cloneDir : '',
+                    running : false,
+                    runningMessage : '',
+                    repoName : 'calvin-network-data',
+                }
+            },
+            
+            reset : function() {
+                this.attempted = false;
+                this.username = '';
+                this.password = '';
+                this.selectedOrg = '';
+                this.orgs = [];
+                this.loading = false;
+                this.user = null;
+                this.cloneDir = '';
+                this.running = false;
+                this.runningMessage = '';
+
+                this.setLoading(false);
+                this.$.orgPanel.style.display = 'none';
+                this.$.chooseDirPanel.style.display = 'none';
+                this.$.clonePanel.style.display = 'none';
+            },
+
+            access : function() {
+                this.username = this.inputUsername.value;
+                var password = this.inputPassword.value;
+
+                if( username.length == 0 || tpassword.length == 0 ) {
+                    return alert('Please provide a username and password');
+                }
+
+                this.setLoading(true);
+  
+                this.makeRequest(password, 'https://api.github.com/user', this.onUser.bind(this));
+            },
+
+            makeRequest : function(password, url, callback) {
+                var options = {
+                    url: url,
+                    headers: {
+                        'User-Agent': 'request',
+                        'Authorization': 'Basic '+(new Buffer(this.username+':'+password).toString('base64'))
                     }
+                };
+                request(options, callback);
+            },
 
-                    this.attempted = true;
-                    this.loading = true;
-                    this.makeRequest('https://api.github.com/user', this.onUser.bind(this));
-                },
+            setLoading : function(loading) {
+                if( loading ) {
+                    this.$.login.style.display = 'none';
+                    this.$.loginMessage.style.display = 'block';
+                } else {
+                    this.$.login.style.display = 'block';
+                    this.$.loginMessage.style.display = 'none';
+                }
+            },
 
-                makeRequest : function(url, callback) {
-                    var options = {
-                        url: url,
-                        headers: {
-                            'User-Agent': 'request',
-                            'Authorization': 'Basic '+(new Buffer(this.username+':'+this.password).toString('base64'))
+            onUser : function(error, response, body) {
+                if( error ) {
+                    this.setLoading(false);
+                    alert(error);
+                    return;
+                }
+
+                this.user = JSON.parse(body);
+                this.makeRequest('https://api.github.com/users/'+this.username+'/orgs', this.onUserAccess.bind(this));
+            },
+
+            onUserAccess : function(error, response, body) {
+                this.setLoading(false);
+                if( error ) return alert(error);
+                
+                body = JSON.parse(body);
+                
+                if( body.message ) {
+                    alert(body.message);
+                    return;
+                }
+
+                this.$.orgPanel.style.display = 'block';
+
+                this.orgs = [{
+                    name : this.user.login,
+                    icon : this.user.avatar_url,
+                    type : 'Personal'
+                }];
+
+                for( var i = 0; i < body.length; i++ ) {
+                    this.orgs.push({
+                        name : body[i].login,
+                        icon : body[i].avatar_url,
+                        type : 'Organization'
+                    });
+                }
+            },
+
+            selectOrg : function(e) {
+                this.selectedOrg = e.currentTarget.getAttribute('org');
+                $(this.querySelectorAll('a.btn.select-btn')).removeClass('active');
+                e.currentTarget.classList.add('active');
+
+                this.chooseDirPanel.style.display = 'block'
+
+                // have to check if it's user or org for this call
+                /*this.makeRequest('https://api.github.com/orgs/'+this.selectedOrg+'/repos', 
+                    function(error, response, body ){
+                        body = JSON.parse(body);
+                        for( var i = 0; i < body.length; i++ ) {
+                            if( body[i].name == this.selectOrg ) {
+                                var ele = this.shadowRoot.querySelector('a[org="'+this.selectOrg+'"]');
+                                if( ele ) $(ele).removeClass('active').addClass('disabled');
+                                alert('Repo already exists in: '+this.selectOrg);
+                            }
                         }
-                    };
-                    request(options, callback);
-                },
+                }.bind(this));*/
+            },
 
-                onUser : function(error, response, body) {
-                    if( error ) {
-                        this.loading = false;
-                        alert(error);
-                        return;
-                    }
-                    this.user = JSON.parse(body);
-                    this.makeRequest('https://api.github.com/users/'+this.username+'/orgs', this.onUserAccess.bind(this));
-                },
+            goTo : function(e) {
+                var url = e.currentTarget.getAttribute('url');
+                gui.Shell.openExternal(url);
+            },
 
-                onUserAccess : function(error, response, body) {
-                    this.loading = false;
-                    
-                    if( error ) {
-                        alert(error)
-                        return;
-                    }
-                    
+            chooseFile : function() {
+                this.$.fileDialog.click();
+            },
+
+            onSelect : function(e) {
+                this.cloneDir = this.$.fileDialog.value;
+
+                if( fs.existsSync(this.cloneDir+'/'+this.repoName) ) {
+                    return alert('Directory already exists');
+                }
+
+                this.$.clonePanel.style.display = 'block';
+                this.$.cloneLabel.style.display = 'block';
+                this.$.cloningLabel.style.display = 'none';
+
+                this.$.gitRepoLabel.innerText = 'https://github.com/'+this.selectedOrg+'/calvin-network-data';
+
+                this.$.newGitRepo = this.cloneDir+'/'+this.repoName;
+            },
+
+            run : function() {
+                this.$.cloneLabel.style.display = 'none';
+                this.$.cloningLabel.style.display = 'block';
+                this.$.cloningLabel.innerText = 'Forking repo...';
+
+                request.post({
+                    headers : {
+                        'content-type' : 'application/json',
+                        'User-Agent': 'request',
+                        'Authorization': 'Basic '+(new Buffer(this.username+':'+this.password).toString('base64'))
+                    },
+                    url  : 'https://api.github.com/repos/ucd-cws/'+this.repoName+'/forks',
+                    body : JSON.stringify({organization: this.selectOrg})
+                }, function(error, response, body){
                     body = JSON.parse(body);
-                    
                     if( body.message ) {
                         alert(body.message);
-                        return;
                     }
 
-                    this.orgs = [{
-                        name : this.user.login,
-                        icon : this.user.avatar_url,
-                        type : 'Personal'
-                    }];
+                    setTimeout(function(){
+                        this.clone();
+                    }.bind(this), 8000);
+                    
+                }.bind(this));
+            },
 
-                    for( var i = 0; i < body.length; i++ ) {
-                        this.orgs.push({
-                            name : body[i].login,
-                            icon : body[i].avatar_url,
-                            type : 'Organization'
-                        });
-                    }
-                },
+            clone : function() {
+                this.$.cloningLabel.innerText = 'Fork complete.  Cloning repo... (Please wait, this may take a couple minutes)';
 
-                selectOrg : function(e) {
-                    this.selectedOrg = e.currentTarget.getAttribute('org');
-                    $(this.shadowRoot.querySelectorAll('a.btn')).removeClass('active');
-                    e.currentTarget.classList.add('active');
-
-                    // have to check if it's user or org for this call
-                    /*this.makeRequest('https://api.github.com/orgs/'+this.selectedOrg+'/repos', 
-                        function(error, response, body ){
-                            body = JSON.parse(body);
-                            for( var i = 0; i < body.length; i++ ) {
-                                if( body[i].name == this.selectOrg ) {
-                                    var ele = this.shadowRoot.querySelector('a[org="'+this.selectOrg+'"]');
-                                    if( ele ) $(ele).removeClass('active').addClass('disabled');
-                                    alert('Repo already exists in: '+this.selectOrg);
-                                }
-                            }
-                    }.bind(this));*/
-                },
-
-                goTo : function(e) {
-                    var url = e.currentTarget.getAttribute('url');
-                    gui.Shell.openExternal(url);
-                },
-
-                chooseFile : function() {
-                    this.$.fileDialog.click();
-                },
-
-                onSelect : function(e) {
-                    this.cloneDir = this.$.fileDialog.value;
-
-                    if( fs.existsSync(this.cloneDir+'/'+this.repoName) ) {
-                        return alert('Directory already exists');
-                    }
-                },
-
-                run : function() {
-                    this.running = true; 
-                    this.runningMessage = 'Forking repo...';
-
-                    request.post({
-                        headers : {
-                            'content-type' : 'application/json',
-                            'User-Agent': 'request',
-                            'Authorization': 'Basic '+(new Buffer(this.username+':'+this.password).toString('base64'))
-                        },
-                        url  : 'https://api.github.com/repos/ucd-cws/'+this.repoName+'/forks',
-                        body : JSON.stringify({organization: this.selectOrg})
-                    }, function(error, response, body){
-                        body = JSON.parse(body);
-                        if( body.message ) {
-                            alert(body.message);
-                        }
-
-                        setTimeout(function(){
-                            this.clone();
-                        }.bind(this), 8000);
-                        
-                    }.bind(this));
-                },
-
-                clone : function() {
-                    this.runningMessage = 'Fork complete.  Cloning repo... (Please wait, this may take a couple minutes)';
-
-                    if( fs.existsSync(this.cloneDir+'/'+this.repoName) ) {
-                        return alert('Directory already exists');
-                    }
-                    //fs.mkdirSync(this.cloneDir+'/'+this.repoName);
-
-                    CWN.git.clone(this.cloneDir, 
-                        'https://github.com/'+this.selectedOrg+'/'+this.repoName, 
-                        function(err, resp){
-                            this.running = false;
-                        
-                            if( err ) return alert(err);
-
-                            alert('Success!');
-                            this.fire('repo-created', this.cloneDir+'/'+this.repoName);
-                            this.reset();
-                    }.bind(this));
+                if( fs.existsSync(this.cloneDir+'/'+this.repoName) ) {
+                    return alert('Directory already exists');
                 }
-            });
-        })();
+                //fs.mkdirSync(this.cloneDir+'/'+this.repoName);
 
-    </script>
-</polymer-element>
+                CWN.git.clone(this.cloneDir, 
+                    'https://github.com/'+this.selectedOrg+'/'+this.repoName, 
+                    function(err, resp){
+                        if( err ) return alert(err);
+
+                        alert('Success!');
+                        this.fire('repo-created', this.cloneDir+'/'+this.repoName);
+                        this.reset();
+                }.bind(this));
+            }
+        });
+    })();
+</script>
