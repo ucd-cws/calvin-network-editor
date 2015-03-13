@@ -42,7 +42,7 @@
                 properties : {},
                 propList : []
             }
-        }
+        },
         
         update : function(properties) {
             this.properties = properties;
@@ -80,7 +80,7 @@
                 if( prop.type == 'string' ) {
                     table += '<input type="text" value="'+prop.value+'" class="form-control" />';
                 } else if ( prop.type == 'object' ) {
-                    table += '<juicy-jsoneditor modes="['text', 'tree']" style="height: 200px"></juicy-jsoneditor>';
+                    table += '<juicy-jsoneditor modes="[\'text\', \'tree\']" style="height: 200px"></juicy-jsoneditor>';
                 } else if ( prop.type == '$ref' ) {
                     table += 'Reference Data <a class="btn btn-link"><i class="fa fa-pencil"></i> Edit</a>';
                 }

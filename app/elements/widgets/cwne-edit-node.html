@@ -1,59 +1,59 @@
-<polymer-element name="cwne-edit-node">
+<dom-module id="cwne-edit-node">
     <template>
-        <h2>Editing {{prmname}}</h2>
+        <h2 id="title"></h2>
         <div>
-            <juicy-jsoneditor json="{{json}}" modes="['text', 'tree']" style="height: 500px"></juicy-jsoneditor>
+            <!-- TODO: figure out editor -->
+            <!-- <juicy-jsoneditor json="{{json}}" modes="['text', 'tree']" style="height: 500px"></juicy-jsoneditor> -->
         </div>
-        <div><a class="btn btn-default" on-click="{{save}}">Save</a></div></div>
-        <div><a href="#info/{{prmname}}">back</a></div>
+        <div><a class="btn btn-default" on-click="save">Save</a></div></div>
+        <div><a id="link">back</a></div>
     </template>
-    <script>
-        (function(){
+</dom-module>
 
-            var fs = requireNode('fs');
+<script>
+    (function(){
 
-            Polymer('cwne-edit-node', {
-                prmname : '',
-                json : {},
-                org : {},
-                ds : null,
-                loaded : false,
+        var fs = requireNode('fs');
 
-                observe : {
-                    prmname : 'setNode'
-                },
+        Polymer({
+            is : 'cwne-edit-node',
 
-                ready : function() {
-                    Polymer.whenPolymerReady(function(){
-                        this.ds = document.querySelector('html /deep/ cwn-datastore');
-                        this.ds.addEventListener('loaded', this.setNode.bind(this));
-                    }.bind(this));
-                },
+            attached : function() {
+                setTimeout(function(){
+                    this.ds = document.querySelector('cwn-datastore');
+                }.bind(this), 100);
+            },
 
-                save : function() {
-                    if( fs.existsSync(this.org.properties.file) ) {
-                        fs.unlinkSync(this.org.properties.file);
-                    }
+            render : function(prmname) {
+                this.prmname = prmname;
 
-                    fs.writeFileSync(this.org.properties.file, JSON.stringify(this.json, '', '  '));
-                    this.ds.lookupMap[this.prmname] = this.json;
+                this.$.title.innerText = prmname;
+                this.$.link.setAttribute('attribute', '#info/'+prmname);
+                this.setNode();
+            },
 
-                    // TODO: need to update map
-                    alert('Node Saved!');
-                },
-
-                setNode : function() {
-                    if( this.prmname == '' ) return;
-                    if( !this.ds ) return;
-                    if( !this.ds.lookupMap[this.prmname] ) return;
-
-                    this.org = this.ds.lookupMap[this.prmname];
-                    this.json = $.extend(true, {}, this.org);
-                    delete this.json.properties._render;
-                    delete this.json.properties.file;
+            save : function() {
+                if( fs.existsSync(this.org.properties.file) ) {
+                    fs.unlinkSync(this.org.properties.file);
                 }
-            });
 
-        })();
-    </script>
-</polymer-element>
+                fs.writeFileSync(this.org.properties.file, JSON.stringify(this.json, '', '  '));
+                this.ds.lookupMap[this.prmname] = this.json;
+
+                // TODO: need to update map
+                alert('Node Saved!');
+            },
+
+            setNode : function() {
+                if( !this.ds ) return;
+                if( !this.ds.lookupMap[this.prmname] ) return;
+
+                this.org = this.ds.lookupMap[this.prmname];
+                this.json = $.extend(true, {}, this.org);
+                delete this.json.properties._render;
+                delete this.json.properties.file;
+            }
+        });
+
+    })();
+</script>

@@ -1,96 +1,105 @@
-<polymer-element name="cwne-app">
+<dom-module id="cwne-app">
     <template>
         <cwne-layout id="layout">
             <cwne-repo-config 
-                hidden?="{{page != 'select'}}" 
-                on-dir-selected="{{onDirSelect}}"
-                on-invalid-dir="{{onInvalidDir}}">
+                id="config"
+                style="display:none" 
+                on-dir-selected="onDirSelect"
+                on-invalid-dir="onInvalidDir">
             </cwne-repo-config>
-            <cwn-app hidden?="{{page != 'network'}}" islocal></cwn-app>
+            
+            <cwn-app id="network" islocal></cwn-app>
+
             <cwne-node-editor 
-                id="edit" 
-                hidden?="{{page != 'edit' && page != 'add'}}" 
-                editMode?="{{page == 'edit'}}">
+                id="edit">
             </cwne-node-editor>
         </cwne-layout>
     </template>
-    <script>
-        (function(){
+</dom-module>
+
+<script>
+    (function(){
+        var gui = requireNode('nw.gui');
+        
+        Polymer({
+            is : 'cwne-app',
 
 
-            var gui = requireNode('nw.gui');
+            ready : function() {
+                this.networkLoader = document.querySelector('cwne-fs-network-loader');
+                window.location = '#';
+
+                this.ds = document.querySelector('html /deep/ cwn-datastore');
+
+                $(window).on('hashchange', this.setPage.bind(this));
+                this.setPage();
+
+                this.initMenu();
+            },
             
-
-            Polymer('cwne-app', {
-                page : '',
-                networkLoader : null,
-                ds : null,
-
-                ready : function() {
-                    this.networkLoader = document.querySelector('cwne-fs-network-loader');
-                    window.location = '#';
-
-                    this.ds = document.querySelector('html /deep/ cwn-datastore');
-
-                    $(window).on('hashchange', this.setPage.bind(this));
-                    this.setPage();
-
-                    this.initMenu();
-                },
-                
-                /* 
-                    OSX Copy & Paste Fix: 
-                    https://github.com/nwjs/nw.js/issues/1955
-                    https://github.com/nwjs/nw.js/issues/2039
-                */
-                initMenu : function() {
-                    win = gui.Window.get();
-                    var nativeMenuBar = new gui.Menu({ type: "menubar" });
-                    try {
-                        nativeMenuBar.createMacBuiltin("Calvin Network Editor");
-                        win.menu = nativeMenuBar;
-                    } catch (ex) {
-                        console.log(ex.message);
-                    }
-                },
-
-                onDirSelect : function(e) {
-                    // set the root directory for the local network loader
-                    this.networkLoader.rootDir = e.detail;
-                    //this.$.add.rootDir = e.detail;
-
-                    // poke the datastore to load;
-                    this.ds.init();
-
-                    window.location = '#map';
-                    this.$.layout.showNetwork = true;
-                },
-
-                onInvalidDir : function() {
-                    this.$.layout.showNetwork = false;
-                },
-
-                setPage : function() {
-                    var loc = window.location.hash.replace(/#/,'').replace(/\/.*/,'');
-                    if( loc == '' ) {
-                        this.page = 'select';
-                    } else if( loc == 'map' || loc == 'graph' || loc == 'info' ) {
-                        this.page = 'network';
-                    } else if( loc == 'edit' ) {
-                        this.page = 'edit';
-
-                        var prmname = window.location.hash.split('/')[1];
-                        if( this.ds.lookupMap[prmname] ) {
-                            this.$.edit.onShow(this.ds.lookupMap[prmname]);
-                        } else {
-                            alert('Invalid prmname: '+prmname);
-                        }
-                    } else if( loc == 'add' ) {
-                        this.page = 'add';
-                        this.$.edit.onShow();
-                    }
+            /* 
+                OSX Copy & Paste Fix: 
+                https://github.com/nwjs/nw.js/issues/1955
+                https://github.com/nwjs/nw.js/issues/2039
+            */
+            initMenu : function() {
+                win = gui.Window.get();
+                var nativeMenuBar = new gui.Menu({ type: "menubar" });
+                try {
+                    nativeMenuBar.createMacBuiltin("Calvin Network Editor");
+                    win.menu = nativeMenuBar;
+                } catch (ex) {
+                    console.log(ex.message);
                 }
-            });
-        })();
-    </script>
-</polymer-element>
+            },
+
+            onDirSelect : function(e) {
+                // set the root directory for the local network loader
+                this.networkLoader.rootDir = e.detail;
+                //this.$.add.rootDir = e.detail;
+
+                // poke the datastore to load;
+                this.ds.init();
+
+                window.location = '#map';
+                this.$.layout.showNetwork = true;
+            },
+
+            onInvalidDir : function() {
+                this.$.layout.showNetwork = false;
+            },
+
+            setPage : function() {
+                this.hidePages();
+                var loc = window.location.hash.replace(/#/,'').replace(/\/.*/,'');
+                
+                if( loc == '' ) {
+                    this.$.config.style.display = 'block'
+                } else if( loc == 'map' || loc == 'graph' || loc == 'info' ) {
+                    this.$.network.style.display = 'block';
+                } else if( loc == 'edit' ) {
+                    this.$.edit.style.display = 'block';
+                    this.$.edit.editMode = true;
+
+                    var prmname = window.location.hash.split('/')[1];
+                    if( this.ds.lookupMap[prmname] ) {
+                        this.$.edit.onShow(this.ds.lookupMap[prmname]);
+                    } else {
+                        alert('Invalid prmname: '+prmname);
+                    }
+                } else if( loc == 'add' ) {
+                    this.$.edit.style.display = 'block';
+                    this.$.edit.onShow();
+                }
+            },
+
+            hidePages : function(page) {
+                var pages = ['config', 'network', 'edit'];
+
+                for( var i = 0; i < pages.length; i++ ) {
+                    this.$[pages[i]].style.display = 'none';
+                }
+            }
+        });
+    })();
+</script>

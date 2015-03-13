@@ -1,55 +1,74 @@
-<polymer-element name="cwne-layout">
-    <template>
-        <style>
-            :host {
-                display: block;
-                height: 100%;
-            }
-            .overflow {
-                overflow: auto;
-            }
-            .content {
-                background-color: white;
-                height: 100%;
-                position: relative;
-            }
-            .nav {
-                min-width: 200px;
-                background-color: #333;
-                color: white;
-                box-shadow: 0 0 5px black;
-                z-index: 10001;
-            }
-            .nav a {
-                color: white;
-            }
-            .nav li {
-                padding: 10px;
-                border-bottom: 1px solid #888;
-            }
-        </style>
+<dom-module id="cwne-layout">
+    <style>
+        :host {
+            display: block;
+            height: 100%;
+        }
+        .overflow {
+            overflow: auto;
+        }
+        .content {
+            background-color: white;
+            height: 100%;
+            position: relative;
+        }
+        .left-nav {
+            min-width: 200px;
+            background-color: #333;
+            color: white;
+            box-shadow: 0 0 5px black;
+            z-index: 10001;
+        }
+        .left-nav a {
+            color: white;
+        }
+        .left-nav li {
+            padding: 10px;
+            border-bottom: 1px solid #888;
+        }
+    </style>
 
-        <div layout horizontal style="height: 100%">
-            <div class="nav">
+    <template>
+        <div class="layout horizontal" style="height: 100%">
+            <div class="left-nav">
                 <ul style="list-style: none">
-                    <li><a href="{{hack}}#/">Select</a></li>
-                    <li hidden?="{{!showNetwork}}"><a href="{{hack}}#map">Network</a></li>
-                    <li hidden?="{{!showNetwork}}"><a href="{{hack}}#add">Add</a></li>
+                    <li><a id="selectLink">Select</a></li>
+                    <li id="networkLink" style="display:none"><a>Network</a></li>
+                    <li id="addLink" style="display:none"><a>Add</a></li>
                 </ul>
             </div>
-            <div flex style="height: 100%">
+            <div class="flex" style="height: 100%">
                 <div class="content">
-                    <div fit class="overflow">
+                    <div class="fit overflow">
                         <content></content>
                     </div>
                 </div>
             </div>
         </div>
     </template>
-    <script>
-        Polymer('cwne-layout',{
-            hack : '',
-            showNetwork : false,
-        })
-    </script>
-</polymer-element>
+</dom-module>
+
+<script>
+    Polymer({
+        is : 'cwne-layout',
+
+        configure : function() {
+            return {
+                hack : '',
+                showNetwork : false
+            }
+        },
+
+        ready : function() {
+            this.$.selectLink.setAttribute('href', '#/');
+
+            $(this.$.networkLink).find('a').attr('href','#map');
+            $(this.$.addLink).find('a').attr('href','#add');
+        },
+
+        showNetwork : function(show) {
+            this.$.networkLink.style.display = show ? 'block' : 'none';
+            this.$.addLink.style.display = show ? 'block' : 'none';
+        }
+    });
+</script>
