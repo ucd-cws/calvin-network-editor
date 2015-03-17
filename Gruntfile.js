@@ -249,14 +249,14 @@ module.exports = function (grunt) {
                     stdout: true,
                     stderr: true
                 },
-                command: 'node_modules/nodewebkit/bin/nodewebkit app/'
+                command: 'node_modules/nw/bin/nw app/'
             },
             'run-schema' : {
                 options: {
                     stdout: true,
                     stderr: true
                 },
-                command: 'node_modules/nodewebkit/bin/nodewebkit app/schema'
+                command: 'node_modules/nw/bin/nw app/schema'
             },
             'run-ms' : {
                 options: {
