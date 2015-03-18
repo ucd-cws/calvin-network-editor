@@ -5,10 +5,12 @@
         Polymer({
             is : 'cwne-fs-network-loader',
 
-            run : function(rootDir, callback) {
-                if( !rootDir ) return;
 
-                CWN.fs.init(rootDir);
+
+            run : function(callback) {
+                if( !CWN.rootDir ) return;
+
+                CWN.fs.init(CWN.rootDir);
                 callback(CWN.fs.load());
             }
         });

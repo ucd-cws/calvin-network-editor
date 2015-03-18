@@ -4,7 +4,7 @@
         .select-btn {
             margin: 5px;
         }
-        .panel {
+        .repo-panel {
             padding: 10px;
         }
         .page-header {
@@ -20,7 +20,7 @@
         
         <h3 style="text-align:center" class="page-header">Clone Remote Git Repository</h3>
 
-        <div class="panel">
+        <div class="repo-panel">
             <h4>Git Repository URL</h4>
             <input type="text" 
                 id="gitUrl"
@@ -29,18 +29,20 @@
                 on-change="updateRepoName" />
         </div>
 
-        <div id="chooseDirPanel" class="panel" style="display:none">
+        <div id="chooseDirPanel" class="repo-panel">
             <h4 class="page-header">Choose local directory to clone remote respositry into.</h4>
             <input style="display:none;" id="fileDialog" type="file" on-change="onSelect" webkitdirectory />
             <a class="btn btn-default" on-click="chooseFile" ><i class="fa fa-folder-o"></i> Pick</a>
         </div>
 
-        <div id="clonePanel" style="display: none" class="panel">
+        <div id="clonePanel" style="display: none" class="repo-panel">
             <div class="alert alert-success">
                 <div>Ready to clone remote git repo <b id="selectedUrlLabel"></b></div>
                 <div>Then clone it into <b id="repoLabel"></b></div>
             </div>
-            <div id="finishedLabel" style="display:none"><a class="btn btn-success" on-click="clone">Go</a></div>
+            <div id="finishedLabel" style="display:none">
+                <a class="btn btn-success" on-click="clone">Go</a>
+            </div>
             <div id="runningLabel" style="display:none">
                 <i class="fa fa-spinner fa-spin"></i> Cloning Repo...</span>
             </div>
@@ -60,6 +62,7 @@
             configure : function() {
                 return {
                     selectedUrl : 'https://github.com/ucd-cws/calvin-network-data.git',
+                    selectedUrlLabel : 'https://github.com/ucd-cws/calvin-network-data.git',
                     cloneDir : '',
                     repoName : 'calvin-network-data',
                 }
@@ -75,7 +78,6 @@
 
                 this.$.finishedLabel.style.display = 'none';
                 this.$.runningLabel.style.display = 'none';
-                this.$.chooseDirPanel.style.display = 'none';
                 this.$.clonePanel.style.display = 'none';
             },
 
@@ -84,9 +86,6 @@
                 this.$.selectedUrlLabel.innerText = this.selectedUrl;
 
                 this.repoName = this.selectedUrl.replace(/^.*\//,'').replace(/\.git$/,'');
-
-                if( this.selectedUrl.length > 0 ) this.$.chooseDirPanel.style.display = 'block';
-                else this.$.chooseDirPanel.style.display = 'none';
             },
 
             goTo : function(e) {
@@ -107,8 +106,13 @@
 
                 this.$.repoLabel.innerText = this.cloneDir+'/'+this.repoName;
 
-                if( this.cloneDir.length > 0 ) this.$.clonePanel.style.display = 'block';
-                else this.$.clonePanel.style.display = 'none';
+                if( this.cloneDir.length > 0 ) {
+                    this.$.clonePanel.style.display = 'block';
+                    this.$.finishedLabel.style.display = 'block';
+                    this.$.runningLabel.style.display = 'none';
+                } else {
+                    this.$.clonePanel.style.display = 'none';
+                }
             },
 
             clone : function() {

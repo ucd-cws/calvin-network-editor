@@ -33,10 +33,11 @@
 
             var children = $(this.$.panels).children();
             for( var i = 0; i < children.length; i++ ) {
-                var tab = $('<li index="'+i+'"><a style="cursor:pointer">'+children[i].getAttribute('label')+'</a></li>');
+                var tab = $('<li index="'+i+'" ><a style="cursor:pointer">'+children[i].getAttribute('label')+'</a></li>');
                 tab.on('click', this.onTabClick.bind(this));
                 tabs.append(tab);
             }
+            if( children.length > 0 ) this.select(0);
         },
 
         onTabClick : function(e) {

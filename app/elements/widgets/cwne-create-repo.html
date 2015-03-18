@@ -3,7 +3,7 @@
         .select-btn {
             margin: 5px;
         }
-        .panel {
+        .fork-panel {
             padding: 10px;
         }
         .page-header {
@@ -42,7 +42,7 @@
             <i icon="fa fa-spinner fa-spin"></i> Accessing GitHub... 
         </a>
 
-        <div id="orgPanel" class="panel" style="margin-top: 20px; style: display:none">
+        <div id="orgPanel" class="fork-panel" style="margin-top: 20px; display:none">
             <h4 class="page-header">Select organization to fork git respository in.</h4>
 
             <template is="x-repeat" items="{{orgs}}">
@@ -58,13 +58,13 @@
             </template> 
         </div>
 
-        <div id="chooseDirPanel" class="panel" style="display:none">
+        <div id="chooseDirPanel" class="fork-panel" style="display:none">
             <h4 class='page-header'>Choose local directory to clone remote respositry into.</h4>
             <input style="display:none;" id="fileDialog" type="file" on-change="onSelect" webkitdirectory />
             <a class="btn btn-default" on-click="chooseFile" ><i class="fa fa-folder-o"></i> Pick</a>
         </div>
 
-        <div class="clonePanel" class="panel" style="display:none">
+        <div id="clonePanel" class="fork-panel" style="display:none">
             <div class="alert alert-success">
                 <div>Ready to fork new git repo <b id="gitRepoLabel"></b></div>
                 <div>Into <b id="newGitRepo"></b></div>
@@ -119,24 +119,24 @@
             },
 
             access : function() {
-                this.username = this.inputUsername.value;
-                var password = this.inputPassword.value;
+                this.username = this.$.inputUsername.value;
+                this.password = this.$.inputPassword.value;
 
-                if( username.length == 0 || tpassword.length == 0 ) {
+                if( this.username.length == 0 || this.password.length == 0 ) {
                     return alert('Please provide a username and password');
                 }
 
                 this.setLoading(true);
   
-                this.makeRequest(password, 'https://api.github.com/user', this.onUser.bind(this));
+                this.makeRequest('https://api.github.com/user', this.onUser.bind(this));
             },
 
-            makeRequest : function(password, url, callback) {
+            makeRequest : function(url, callback) {
                 var options = {
                     url: url,
                     headers: {
                         'User-Agent': 'request',
-                        'Authorization': 'Basic '+(new Buffer(this.username+':'+password).toString('base64'))
+                        'Authorization': 'Basic '+(new Buffer(this.username+':'+this.password).toString('base64'))
                     }
                 };
                 request(options, callback);
@@ -196,7 +196,7 @@
                 $(this.querySelectorAll('a.btn.select-btn')).removeClass('active');
                 e.currentTarget.classList.add('active');
 
-                this.chooseDirPanel.style.display = 'block'
+                this.$.chooseDirPanel.style.display = 'block'
 
                 // have to check if it's user or org for this call
                 /*this.makeRequest('https://api.github.com/orgs/'+this.selectedOrg+'/repos', 
@@ -234,7 +234,7 @@
 
                 this.$.gitRepoLabel.innerText = 'https://github.com/'+this.selectedOrg+'/calvin-network-data';
 
-                this.$.newGitRepo = this.cloneDir+'/'+this.repoName;
+                this.$.newGitRepo.innerText = this.cloneDir+'/'+this.repoName;
             },
 
             run : function() {

@@ -62,11 +62,11 @@
                 this.ds.init();
 
                 window.location = '#map';
-                this.$.layout.showNetwork = true;
+                this.$.layout.showNetwork(true);
             },
 
             onInvalidDir : function() {
-                this.$.layout.showNetwork = false;
+                this.$.layout.showNetwork(false);
             },
 
             setPage : function() {
