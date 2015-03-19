@@ -109,8 +109,10 @@
                 setTimeout(function(){
                     var dir = window.localStorage.getItem('rootDir');
                     if( dir ) {
+                        this.$.main.style.display = 'block';
                         this.setRootDir(dir);
                         this.check();
+                        this.fire('dir-selected', this.rootDir);
                     }
                 }.bind(this), 100);
             },

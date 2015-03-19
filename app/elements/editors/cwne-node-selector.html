@@ -1,0 +1,79 @@
+<dom-module id="cwne-node-selector">
+    <template>
+        <input id="input" type="text" class="form-control" on-keypress="onKeyPress" />
+
+        <template is="x-repeat" items="results">
+            <div>
+                <div>
+                    <cwn-app-icon type="{{item.type}}" height="24" width="24"></cwn-app-icon>
+                    <span>{{item.prmname}}</span>
+                </div>
+                <div class="help-text">{{item.description}}</div>
+            </div>
+        </template>
+    </template>
+</dom-module>
+
+<script>
+    Polymer({
+        is : 'cwne-node-selector',
+
+        ready : function() {
+            this.searchTimer = -1;
+            this.ds = document.querySelector('cwn-datastore');
+        },
+
+        setNode : function(node) {
+            this.node = node;
+        },
+
+        onKeyPress : function() {
+            if( this.searchTimer != -1 ) clearTimeout(this.searchTimer);
+            this.searchTimer = setTimeout(function() {
+                this.searchTimer = -1;
+                this.search();
+            }.bind(this), 200);
+        }
+
+        search : function() {
+            var search = this.$.input.value;
+            this.results = [];
+
+            if( search.length == 0 ) return;
+
+            var used = this.getUsedNodes();
+            search = new RegExp('.*'+search.toLowerCase()+'.*');
+
+            var node;
+            for( var i = 0; i < this.ds.nodes.length; i++ ) {
+                node = this.ds.nodes[i];
+                if( used.indexOf(node.prmname) != -1 ) continue;
+
+                if( search.test(node.prmname.toLowerCase()) ) {
+                    this.results.push(node);
+                    if( this.results.length == 25 ) break;
+                }
+            }
+        },
+
+        getUsedNodes : function() {
+            var used = [];
+
+            if( this.node ) {
+                if( this.node.origins ) {
+                    for( var i = 0; i < this.nodes.origins.length; i++ ) {
+                        used.push(this.nodes.origins[i]);
+                    }
+                }
+
+                if( this.node.terminals ) {
+                    for( var i = 0; i < this.nodes.terminals.length; i++ ) {
+                        used.push(this.nodes.terminals[i]);
+                    }
+                }
+            }
+
+            return used;
+        }
+    })
+</script>
