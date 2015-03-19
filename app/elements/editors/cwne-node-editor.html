@@ -1,3 +1,6 @@
+<link rel="import" href="cwne-node-selector.html" />
+<link rel="import" href="cwne-node-base.html" />
+
 <dom-module id="cwne-node-editor">
     <style>
         :host {
@@ -5,7 +8,9 @@
         }
     </style>
     <template>
-
+        <div style="padding: 10px">
+            <cwne-node-base id="base"></cwn-node-base>
+        </div>
     </template>
 </dom-module>
 
@@ -14,7 +19,7 @@
         is : 'cwne-node-editor',
 
         onShow : function() {
-            
+            this.$.base.onShow();
         }
     })
 </script>

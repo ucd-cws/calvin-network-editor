@@ -49,7 +49,7 @@
         <div class="form-group">
             <label for="inputDescription" class="col-sm-2 control-label">Origins</label>
             <div class="col-sm-10">
-                <cwn-node-selector></cwn-node-selector>
+                <cwne-node-selector on-select="addOrigin"></cwne-node-selector>
                 <div id="originList"></div>
             </div>
         </div> 
@@ -57,7 +57,7 @@
         <div class="form-group">
             <label for="inputDescription" class="col-sm-2 control-label">Terminals</label>
             <div class="col-sm-10">
-                <cwn-node-selector></cwn-node-selector>
+                <cwne-node-selector on-select="addTerminal"></cwne-node-selector>
                 <div id="terminalList"></div>
             </div>
         </div>   
@@ -73,6 +73,26 @@
             this.origins = [];
             this.terminals = [];
             this.className = 'form-horizontal';
+
+            this.geometry = {
+                marker : null
+            }
+
+            this.init = false;
+        },
+
+        onShow : function() {
+            if( this.init ) {
+                this.invalidateSize();
+                return;
+            }
+
+            var map = L.map(this.$.map).setView([37, -120], 5);
+            L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            this.init = true;
         },
 
         getValue : function() {
@@ -87,6 +107,44 @@
             this.$.inputType.value = node.type;
             this.$.inputPrmname.value = node.prmname;
             this.$.inputDescription.value = node.description;
+        },
+
+        addOrigin : function(e) {
+            this.origins.push(e.detail);
+            this.onLinksUpdated();
+        },
+
+        addTerminal : function(e) {
+            this.terminals.push(e.detail);
+            this.onLinksUpdated();
+        },
+
+        // update map and link lists
+        onLinksUpdated : function() {
+            // origin list
+            var list = this.createRemoveList('origins', this.origins);
+            $(this.$.originList).html('').append(list);
+        },
+
+        createRemoveList : function(type, list) {
+            var html = '<ul>';
+            for( var i = 0; i < list.length; i++ ) {
+                html += '<li>'+list[i]+' <a class="btn btn-link" name="'+list[i]+'" type="'+type+
+                        '"><i class="fa fa-trash" ></i></a></li>';
+            }
+
+            var list = $(html+'</ul>');
+            list.find('a').on('click', this.removeList.bind(this));
+            return list;
+        },
+
+        removeList : function(e) {
+            var prmname = e.currentTarget.getAttribute('name');
+            var type = e.currentTarget.getAttribute('type');
+
+            var index = this[type].indexOf(prmname);
+            if( index > -1 ) this[type].splice(index, 1);
+            $(e.currentTarget).parent().remove();
         },
 
         onTypeChange : function() {

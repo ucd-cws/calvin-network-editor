@@ -1,16 +1,24 @@
 <dom-module id="cwne-node-selector">
     <template>
-        <input id="input" type="text" class="form-control" on-keypress="onKeyPress" />
+        <input id="input" type="text" class="form-control" on-keyup="onKeyPress" placeholder="Find Node" />
 
-        <template is="x-repeat" items="results">
-            <div>
-                <div>
-                    <cwn-app-icon type="{{item.type}}" height="24" width="24"></cwn-app-icon>
-                    <span>{{item.prmname}}</span>
+        <template is="x-repeat" items="{{results}}">
+            <button class="btn btn-default" style="margin: 5px" on-click="onSelect" prmname$="{{item.prmname}}">
+                <div class="layout horizontal">
+                    <div style="font-size: 36px; padding-right: 15px">
+                        <i class="fa fa-plus"></i>
+                    </div>
+                    <div>
+                        <div>
+                            <cwn-app-icon type="{{item.type}}" height="22" width="24" style="vertical-align:middle"></cwn-app-icon>
+                            <span style="vertical-align:middle">{{item.prmname}}</span>
+                        </div>
+                        <div class="help-text">{{item.description}}</div>
+                    </div>
                 </div>
-                <div class="help-text">{{item.description}}</div>
-            </div>
+            </button>
         </template>
+
     </template>
 </dom-module>
 
@@ -18,9 +26,20 @@
     Polymer({
         is : 'cwne-node-selector',
 
-        ready : function() {
+        properties : {
+            results : {
+                value : function() {
+                    return [];
+                }
+            }
+        },
+
+        attached : function() {
             this.searchTimer = -1;
-            this.ds = document.querySelector('cwn-datastore');
+
+            setTimeout(function(){
+                this.ds = document.querySelector('cwn-datastore');
+            }.bind(this), 200);
         },
 
         setNode : function(node) {
@@ -33,7 +52,7 @@
                 this.searchTimer = -1;
                 this.search();
             }.bind(this), 200);
-        }
+        },
 
         search : function() {
             var search = this.$.input.value;
@@ -45,14 +64,15 @@
             search = new RegExp('.*'+search.toLowerCase()+'.*');
 
             var node;
-            for( var i = 0; i < this.ds.nodes.length; i++ ) {
-                node = this.ds.nodes[i];
+            for( var i = 0; i < this.ds.data.nodes.length; i++ ) {
+                node = this.ds.data.nodes[i].properties;
                 if( used.indexOf(node.prmname) != -1 ) continue;
 
-                if( search.test(node.prmname.toLowerCase()) ) {
+                if( search.test(node.prmname.toLowerCase()) || search.test((node.description || '').toLowerCase()) ) {
                     this.results.push(node);
-                    if( this.results.length == 25 ) break;
+                    if( this.results.length == 15 ) break;
                 }
+
             }
         },
 
@@ -74,6 +94,13 @@
             }
 
             return used;
+        },
+
+        onSelect : function(e) {
+            this.fire('select', e.currentTarget.getAttribute('prmname'));
+            this.results = [];
+            this.$.input.value = '';
         }
+
     })
 </script>
