@@ -1,0 +1,64 @@
+<dom-module id="cwne-tabs">
+    <style>
+        :host {
+            display: block;
+            margin: 5px;
+        }
+    </style>
+    <template>
+        <ul class="nav nav-tabs" id="tabs">
+            <!--<li class="active"><a href="#home" aria-controls="home" role="tab" data-toggle="tab">Home</a></li>
+            <li role="presentation"><a href="#profile" aria-controls="profile" role="tab" data-toggle="tab">Profile</a></li>
+            <li role="presentation"><a href="#messages" aria-controls="messages" role="tab" data-toggle="tab">Messages</a></li>
+            <li role="presentation"><a href="#settings" aria-controls="settings" role="tab" data-toggle="tab">Settings</a></li>-->
+        </ul>
+
+        <div class="tab-content" id="panels" style="padding: 15px 10px">
+            <content select=".tab-pane"></content>
+        </div>
+    </template>
+</dom-module>
+
+
+<script>
+    Polymer({
+        is : 'cwne-tabs',
+
+        attached : function() {
+            this.async(this.create.bind(this));
+        },
+
+        create : function() {
+            var tabs = $(this.$.tabs).html('');
+
+            var children = $(this.$.panels).children();
+            for( var i = 0; i < children.length; i++ ) {
+                var tab = $('<li index="'+i+'" ><a style="cursor:pointer">'+children[i].getAttribute('label')+'</a></li>');
+                tab.on('click', this.onTabClick.bind(this));
+                tabs.append(tab);
+            }
+            if( children.length > 0 ) this.select(0);
+        },
+
+        onTabClick : function(e) {
+            this.select(parseInt(e.currentTarget.getAttribute('index')));
+        },
+
+        select : function(index) {
+            $(this.$.tabs).find('li').removeClass('active');
+            $(this.$.tabs).find('li[index="'+index+'"]').addClass('active');
+
+            var panels = $(this.$.panels).find('.tab-pane');
+            for( var i = 0; i < panels.length; i++ ) {
+                if( i == index ) {
+                    panels[i].style.display = 'block';
+                    panels[i].classList.add('active');
+                } else {
+                    panels[i].style.display = 'none';
+                    panels[i].classList.remove('active');
+                }
+            }
+        }
+
+    })
+</script>

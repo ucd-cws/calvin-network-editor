@@ -1,49 +1,18 @@
-<polymer-element name="cwne-fs-network-loader" attributes="rootDir">
-    <template></template>
-    <script>
-        (function(){
-            var fs = requireNode('fs');
+<script>
+    (function(){
+        var fs = requireNode('fs');
 
-            Polymer('cwne-fs-network-loader', {
-                rootDir : '',
+        Polymer({
+            is : 'cwne-fs-network-loader',
 
-                run : function(callback) {
 
-                    if( !this.rootDir ) return;
 
-                    CWN.fs.init(this.rootDir);
-                    callback(CWN.fs.load());
+            run : function(callback) {
+                if( !CWN.rootDir ) return;
 
-                    /*var data = {
-                        nodes : [],
-                        links : []
-                    };
-
-                    var nodes = fs.readdirSync(this.rootDir+'/data/nodes');
-                    for(var i = 0; i < nodes.length; i++ ) {
-                        var jsonFile = this.rootDir+'/data/nodes/'+nodes[i]+'/node.geojson';
-                        if( !fs.existsSync(jsonFile) ) continue;
-
-                        var str = fs.readFileSync(jsonFile);
-                        var node = JSON.parse(str);
-                        node.properties.file = jsonFile
-                        data.nodes.push(node);
-                    }
-
-                    var links = fs.readdirSync(this.rootDir+'/data/links');
-                    for(var i = 0; i < links.length; i++ ) {
-                        var jsonFile = this.rootDir+'/data/links/'+links[i]+'/link.geojson';
-                        if( !fs.existsSync(jsonFile) ) continue;
-
-                        var str = fs.readFileSync(jsonFile);
-                        var link = JSON.parse(str);
-                        link.properties.file = jsonFile;
-                        data.links.push(link);
-                    }
-
-                    callback(data);*/
-                }
-            });
-        })();
-    </script>
-</polymer-element>
+                CWN.fs.init(CWN.rootDir);
+                callback(CWN.fs.load());
+            }
+        });
+    })();
+</script>

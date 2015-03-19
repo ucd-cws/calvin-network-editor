@@ -1,0 +1,155 @@
+<dom-module id="cwne-node-base">
+    <style>
+        :host {
+            display: block;
+        }
+    </style>
+
+    <template>
+
+        <div class="form-group">
+            <label for="inputType" class="col-sm-2 control-label">Node Type</label>
+            <div class="col-sm-10">
+                <select class="form-control" id="inputType" on-change="onTypeChange">
+                    <option value="Power Plant">Power Plant</option>
+                    <option value="Agricultural Demand">Agricultural Demand</option>
+                    <option value="Junction">Junction</option>
+                    <option value="Pump Plant">Pump Plant</option>
+                    <option value="Water Treatment">Water Treatment</option>
+                    <option value="Surface Storage">Surface Storage</option>
+                    <option value="Urban Demand">Urban Demand</option>
+                    <option value="Sink">Sink</option>
+                    <option value="Groundwater Storage">Groundwater Storage</option>
+                    <option value="Non-Standard Demand">Non-Standard Demand</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="inputPrmname" class="col-sm-2 control-label">PRMNAME</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="inputPrmname" placeholder="Unique Node Name">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="inputDescription" class="col-sm-2 control-label">Description</label>
+            <div class="col-sm-10">
+                <textarea class="form-control" id="inputDescription"></textarea>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="inputDescription" class="col-sm-2 control-label">Location</label>
+            <div class="col-sm-10">
+                <div id="map" style="height: 400px"></div>
+            </div>
+        </div>     
+
+        <div class="form-group">
+            <label for="inputDescription" class="col-sm-2 control-label">Origins</label>
+            <div class="col-sm-10">
+                <cwne-node-selector on-select="addOrigin"></cwne-node-selector>
+                <div id="originList"></div>
+            </div>
+        </div> 
+
+        <div class="form-group">
+            <label for="inputDescription" class="col-sm-2 control-label">Terminals</label>
+            <div class="col-sm-10">
+                <cwne-node-selector on-select="addTerminal"></cwne-node-selector>
+                <div id="terminalList"></div>
+            </div>
+        </div>   
+
+    </template>
+</dom-module>
+
+<script>
+    Polymer({
+        is : 'cwne-node-base',
+
+        ready : function() {
+            this.origins = [];
+            this.terminals = [];
+            this.className = 'form-horizontal';
+
+            this.geometry = {
+                marker : null
+            }
+
+            this.init = false;
+        },
+
+        onShow : function() {
+            if( this.init ) {
+                this.invalidateSize();
+                return;
+            }
+
+            var map = L.map(this.$.map).setView([37, -120], 5);
+            L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            this.init = true;
+        },
+
+        getValue : function() {
+            return {
+                type : this.$.inputType.value,
+                prmname : this.$.inputPrmname.value,
+                description : this.$.inputDescription.value
+            }
+        },
+
+        edit : function(node, geo) {
+            this.$.inputType.value = node.type;
+            this.$.inputPrmname.value = node.prmname;
+            this.$.inputDescription.value = node.description;
+        },
+
+        addOrigin : function(e) {
+            this.origins.push(e.detail);
+            this.onLinksUpdated();
+        },
+
+        addTerminal : function(e) {
+            this.terminals.push(e.detail);
+            this.onLinksUpdated();
+        },
+
+        // update map and link lists
+        onLinksUpdated : function() {
+            // origin list
+            var list = this.createRemoveList('origins', this.origins);
+            $(this.$.originList).html('').append(list);
+        },
+
+        createRemoveList : function(type, list) {
+            var html = '<ul>';
+            for( var i = 0; i < list.length; i++ ) {
+                html += '<li>'+list[i]+' <a class="btn btn-link" name="'+list[i]+'" type="'+type+
+                        '"><i class="fa fa-trash" ></i></a></li>';
+            }
+
+            var list = $(html+'</ul>');
+            list.find('a').on('click', this.removeList.bind(this));
+            return list;
+        },
+
+        removeList : function(e) {
+            var prmname = e.currentTarget.getAttribute('name');
+            var type = e.currentTarget.getAttribute('type');
+
+            var index = this[type].indexOf(prmname);
+            if( index > -1 ) this[type].splice(index, 1);
+            $(e.currentTarget).parent().remove();
+        },
+
+        onTypeChange : function() {
+            this.fire('type-change');
+        }
+
+    })
+</script>

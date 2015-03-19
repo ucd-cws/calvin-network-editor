@@ -12,14 +12,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- build:css styles/app.css -->
-  <link rel="stylesheet" href="../../ca-water-network/app/components/font-awesome/css/font-awesome.min.css">
-  <link rel="stylesheet" type="text/css" href="../../ca-water-network/app/components/jsoneditor/jsoneditor.min.css">
+  <link rel="stylesheet" href="../../ca-water-network/app/bower_components/font-awesome/css/font-awesome.min.css">
+  <link rel="stylesheet" href="../../ca-water-network/app/bower_components/jsoneditor/jsoneditor.min.css">
   <link rel="stylesheet" href="style.css" >
   <!-- endbuild -->
 
   <!-- build:js scripts/lib.js -->
-  <script src="../../ca-water-network/app/components/webcomponentsjs/webcomponents.js"></script>
-  <script src="../../ca-water-network/app/components/jquery/dist/jquery.js"></script> 
+  <script src="../../ca-water-network/app/polymer/components/webcomponentsjs/webcomponents.js"></script>
+  <script src="../../ca-water-network/app/bower_components/jquery/dist/jquery.js"></script> 
   <script src="js/requireFix.js"></script> 
   <script src="js/git.js"></script> 
   <script src="js/fs.js"></script> 
@@ -41,10 +41,11 @@
   </script>
 
 </head>
-<body fullbleed>
+<body class="fullbleed">
 
-  <cwne-app></cwne-app>
   <cwne-fs-network-loader></cwne-fs-network-loader>
+  <cwne-app></cwne-app>
+  
 
 </body>
 </html>

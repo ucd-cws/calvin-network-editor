@@ -1,42 +1,44 @@
-<polymer-element name="cwne-repo-config">
+<dom-module id="cwne-repo-config">
+    <style>
+        :host {
+            display: block;
+        }
+        .border {
+            padding: 20px;
+        }
+    </style>
+
     <template>
-        <style>
-            :host {
-                display: block;
-            }
-            .border {
-                padding: 20px;
-            }
-        </style>
-        
-        <paper-tabs selected="{{tab}}">
-            <paper-tab><cwn-icon icon="fa-folder-o"></cwn-icon>&nbsp;Select Local Repo</paper-tab>
-            <paper-tab><cwn-icon icon="fa-cloud-download"></cwn-icon>&nbsp;Clone Existing Repo</paper-tab>
-            <paper-tab><cwn-icon icon="fa-code-fork"></cwn-icon>&nbsp;Fork New Repo</paper-tab>
-        </paper-tabs>
-        
-        <div class="border">
-            <div hidden?="{{tab != 0}}">
+
+        <cwne-tabs>
+            <div class="tab-pane" label="<i class='fa fa-folder-o'></i> Select Local Repo">
                 <cwne-select-repo id="select"></cwne-select-repo>
             </div>
-            <div hidden?="{{tab != 1}}">
-                <cwne-clone-existing-repo on-repo-cloned="{{onRepoCreated}}"></cwne-clone-existing-repo>
+            <div class="tab-pane" label="<i class='fa fa-cloud-download'></i> Clone Existing Repo">
+                <cwne-clone-existing-repo on-repo-cloned="onRepoCreated"></cwne-clone-existing-repo>
             </div>
-            <div hidden?="{{tab != 2}}">
-                <cwne-create-repo on-repo-created="{{onRepoCreated}}"></cwne-create-repo>
+            <div class="tab-pane" label="<i class='fa fa-code-fork'></i> Fork New Repo">
+                <cwne-create-repo on-repo-created="onRepoCreated"></cwne-create-repo>
             </div>
-        </div>
+        </cwne-tabs>
 
     </template>
-    <script>
+</dom-module>
 
-        Polymer('cwne-repo-config', {
-            tab: 0,
-            
-            onRepoCreated : function(e) {
-                this.tab = 0;
-                this.$.select.select(e.detail);
+<script>
+    Polymer({
+        is : 'cwne-repo-config', 
+
+        configure : function() {
+            return {
+                tab: 0
             }
-        });
-    </script>
-</polymer-element>
+        },
+
+        
+        onRepoCreated : function(e) {
+            this.tab = 0;
+            this.$.select.select(e.detail);
+        }
+    });
+</script>

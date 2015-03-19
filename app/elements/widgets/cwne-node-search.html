@@ -1,85 +1,99 @@
 <!-- valid types: 'node', 'link', both -->
-<polymer-element name="cwne-node-search" attributes="type">
-    <template>
-        <style>
-            :host {
-                display: block;
-            }
-            .search-results {
-                /*position: absolute;*/
-                background-color: white;
-                margin-bottom: 5px;
-                border: 1px solid #ccc;
-            }
-            .result {
-                border-bottom: 1px solid #888;
-                cursor: pointer;
-            }
-            .result:hover {
-                background-color: #f8f8f8;
-            }
-        </style>
+<!--<polymer-element name="cwne-node-search" attributes="type">-->
 
-        <input type="text" class="form-control" value="{{searchText}}" />
-        <div class="search-results" hidden?="{{results.length == 0}}">
-            <template repeat="{{result in results}}">
-                <div class="result" on-click="{{select}}" prmname="{{result.name}}">
-                    <div><b>{{result.type}}:</b> <span style="color: #888">{{result.name}}</div>
-                    <div style="padding-top: 5px">{{result.description}}</div>
+<dom-module id="cwne-node-search">
+    <style>
+        :host {
+            display: block;
+        }
+        .search-results {
+            /*position: absolute;*/
+            background-color: white;
+            margin-bottom: 5px;
+            border: 1px solid #ccc;
+        }
+        .result {
+            border-bottom: 1px solid #888;
+            cursor: pointer;
+        }
+        .result:hover {
+            background-color: #f8f8f8;
+        }
+    </style>
+    <template>
+        <input type="text" id="searchText" class="form-control" on-change="search" on-keypress="onKeyPress" />
+
+        <div id="searchResults" class="search-results">
+            <template is="x-repeat" items="{{results}}">
+                <div class="result" on-click="select" prmname$="{{item.name}}">
+                    <div><b>{{item.type}}</b><b>:</b> <span style="color: #888">{{item.name}}</div>
+                    <div style="padding-top: 5px">{{item.description}}</div>
                 </div>
             </template>
         </div>
     </template>
-    <script>
-        Polymer('cwne-node-search', {
-            results : [],
-            type : 'both',
-            searchText : '',
+</dom-module>
 
-            ds : null,
+<script>
+    Polymer({
+        is : 'cwne-node-search',
 
-            observe : {
-                searchText : 'search'
-            },
+        configure : function() {
+            return {
+                results : [],
+                type : 'both',
 
-            ready : function() {
-                Polymer.whenPolymerReady(function(){
-                    this.ds = document.querySelector('html /deep/ cwn-datastore');
-                }.bind(this));
-            },
-
-            search : function() {
-                this.results = [];
-                var txt = this.searchText.toLowerCase();
-                
-                if( txt.length == 0 ) return;
-
-                if( this.type != 'link' ) {
-                    this._search(this.ds.data.nodes, this.results, txt);
-                }
-                if( this.type != 'node' ) {
-                    this._search(this.ds.data.links, this.results, txt);
-                }
-            },
-
-            _search : function(arr, results, txt) {
-                for( var i = 0; i < arr.length; i++ ) {
-                    if( results.length == 5 ) return;
-
-                    if( arr[i].properties.prmname.toLowerCase().indexOf(txt) > -1 ) {
-                        results.push({
-                            name : arr[i].properties.prmname,
-                            type : arr[i].properties.type,
-                            description : arr[i].properties.description.substring(0, 50)
-                        });
-                    }
-                }
-            },
-
-            select : function(e) {
-                this.fire('select', e.currentTarget.getAttribute('prmname'));
-                this.searchText = '';
+                ds : null
             }
-        });
-    </script>
-</polymer-element>
+        },
+
+        attached : function() {
+            setTimeout(function(){
+                this.ds = document.querySelector('html /deep/ cwn-datastore');
+            }.bind(this), 100);
+        },
+
+        onKeyPress : function(e) {
+            if( e.which == 13 ) this.search();
+        },
+
+        search : function() {
+            var txt = this.$.searchText.value.toLowerCase();
+            this.results = [];
+            this.$.searchResults.style.display = 'none';
+
+            
+            if( txt.length == 0 ) return;
+
+            if( this.type != 'link' ) {
+                this._search(this.ds.data.nodes, this.results, txt);
+            }
+
+            if( this.type != 'node' ) {
+                this._search(this.ds.data.links, this.results, txt);
+            }
+        },
+
+        _search : function(arr, results, txt) {
+            for( var i = 0; i < arr.length; i++ ) {
+                if( results.length == 5 ) break;
+
+                if( arr[i].properties.prmname.toLowerCase().indexOf(txt) > -1 ) {
+                    results.push({
+                        name : arr[i].properties.prmname,
+                        type : arr[i].properties.type,
+                        description : arr[i].properties.description.substring(0, 50)
+                    });
+                }
+            }
+
+            if( results.length > 0 ) this.$.searchResults.style.display = 'block';
+            else this.$.searchResults.style.display = 'none';
+        },
+
+        select : function(e) {
+            this.fire('select', e.currentTarget.getAttribute('prmname'));
+            this.searchText = '';
+        }
+    });
+</script>
