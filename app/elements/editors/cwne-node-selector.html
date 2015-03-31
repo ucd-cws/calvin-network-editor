@@ -1,24 +1,7 @@
 <dom-module id="cwne-node-selector">
     <template>
         <input id="input" type="text" class="form-control" on-keyup="onKeyPress" placeholder="Find Node" />
-
-        <template is="x-repeat" items="{{results}}">
-            <button class="btn btn-default" style="margin: 5px" on-click="onSelect" prmname$="{{item.prmname}}">
-                <div class="layout horizontal">
-                    <div style="font-size: 36px; padding-right: 15px">
-                        <i class="fa fa-plus"></i>
-                    </div>
-                    <div>
-                        <div>
-                            <cwn-app-icon type="{{item.type}}" height="22" width="24" style="vertical-align:middle"></cwn-app-icon>
-                            <span style="vertical-align:middle">{{item.prmname}}</span>
-                        </div>
-                        <div class="help-text">{{item.description}}</div>
-                    </div>
-                </div>
-            </button>
-        </template>
-
+        <div id="results"></div>
     </template>
 </dom-module>
 
@@ -72,8 +55,38 @@
                     this.results.push(node);
                     if( this.results.length == 15 ) break;
                 }
-
             }
+
+            this.renderResults();
+        },
+
+        renderResults : function() {
+            var html = '';
+            for( var i = 0; i < this.results.length; i++ ) {
+                var item = this.results[i];
+
+                html +=
+                '<button class="btn btn-default" style="margin: 5px" prmname="'+item.prmname+'">'+
+                    '<div class="layout horizontal">'+
+                        '<div style="font-size: 36px; padding-right: 15px">'+
+                            '<i class="fa fa-plus"></i>'+
+                        '</div>'+
+                        '<div>'+
+                            '<div>'+
+                                '<cwn-app-icon type="'+item.type+'" height="22" width="24" style="vertical-align:middle"></cwn-app-icon>'+
+                                '<span style="vertical-align:middle">'+item.prmname+'</span>'+
+                            '</div>'+
+                            '<div class="help-text">'+item.description+'</div>'+
+                        '</div>'+
+                    '</div>'+
+                '</button>';
+            }
+            $(this.$.results)
+                .html(html)
+                .find('button')
+                    .on('click', function(e){
+                        this.onSelect(e.originalEvent);
+                    }.bind(this));
         },
 
         getUsedNodes : function() {
@@ -98,8 +111,12 @@
 
         onSelect : function(e) {
             this.fire('select', e.currentTarget.getAttribute('prmname'));
-            this.results = [];
-            this.$.input.value = '';
+
+            setTimeout(function(){
+                this.results = [];
+                this.$.input.value = '';
+                this.$.results.innerHTML = '';
+            }.bind(this), 100);
         }
 
     })

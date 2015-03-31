@@ -28,7 +28,8 @@
         <div class="form-group">
             <label for="inputPrmname" class="col-sm-2 control-label">PRMNAME</label>
             <div class="col-sm-10">
-                <input type="text" class="form-control" id="inputPrmname" placeholder="Unique Node Name">
+                <input type="text" class="form-control" id="inputPrmname" on-keyup="checkValidPrmname" on-change="redrawMarkers" placeholder="Unique Node Name">
+                <div id="prmnameMessage" style="display:none; margin-bottom:0;"></div>
             </div>
         </div>
 
@@ -70,28 +71,30 @@
         is : 'cwne-node-base',
 
         ready : function() {
-            this.origins = [];
-            this.terminals = [];
             this.className = 'form-horizontal';
-
             this.geometry = {
                 marker : null
             }
+
 
             this.init = false;
         },
 
         onShow : function() {
+            this.reset();
             if( this.init ) {
-                this.invalidateSize();
+                this.invalidateSize();                
                 return;
             }
 
-            var map = L.map(this.$.map).setView([37, -120], 5);
+            this.map = L.map(this.$.map).setView([37, -120], 5);
             L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
+            }).addTo(this.map);
 
+            this.map.on('click', this.onMapClicked.bind(this));
+
+            this.ds = document.querySelector('cwn-datastore');
             this.init = true;
         },
 
@@ -103,10 +106,129 @@
             }
         },
 
+        reset : function() {
+            this.origins = [];
+            this.terminals = [];
+            this.$.prmnameMessage.style.display = 'none';
+
+            this.$.inputType.value = 'Power Plant';
+            this.$.inputPrmname.value = '';
+            this.$.inputDescription.value = '';
+        },
+
         edit : function(node, geo) {
+            this.reset();
+
             this.$.inputType.value = node.type;
             this.$.inputPrmname.value = node.prmname;
             this.$.inputDescription.value = node.description;
+
+            this.$.checkValidPrmname();
+        },
+
+        onMapClicked : function(e) {
+           this.setLocation(e.latlng.lat, e.latlng.lng);
+        },
+
+        setLocation : function(lat, lng) {
+            this.geometry = {
+                type: 'Point', 
+                coordinates: [lng, lat]
+            };
+
+            this.redrawMarkers();
+        },
+
+        redrawMarkers: function(){
+            if( this.marker ) this.map.removeLayer(this.marker);
+
+            if( this.nodeMarkers ) {
+                for( var i = 0; i < this.nodeMarkers.length; i++ ) {
+                    this.map.removeLayer(this.nodeMarkers[i]);
+                }
+            }
+            if( this.linkMarkers ) {
+                for( var i = 0; i < this.linkMarkers.length; i++ ) {
+                    this.map.removeLayer(this.linkMarkers[i]);
+                }
+            }
+
+            this.nodeMarkers = [];
+            this.linkMarkers = [];
+
+            if( this.geometry && this.geometry.coordinates ) {
+                var nodeLL = [this.geometry.coordinates[1], this.geometry.coordinates[0]];
+
+                for( var i = 0; i < this.origins.length; i++ ) {
+                    this.addLink(this.origins[i], nodeLL, 'origin');
+                }
+                for( var i = 0; i < this.terminals.length; i++ ) {
+                    this.addLink(this.terminals[i], nodeLL, 'terminal');
+                }
+            }
+
+            for( var i = 0; i < this.origins.length; i++ ) {
+                this.addNode(this.origins[i]);
+            }
+            for( var i = 0; i < this.terminals.length; i++ ) {
+                this.addNode(this.terminals[i]);
+            }
+
+            this.marker = this.getMarker(nodeLL, 
+                this.$.inputType.value, this.$.inputPrmname.value).addTo(this.map);
+        },
+
+        addNode : function(prmname) {
+            var node = this.ds.lookupMap[prmname];
+            if( !node ) return;
+
+            var marker = this.getMarker([node.geometry.coordinates[1], node.geometry.coordinates[0]], node.properties.type, prmname);
+
+            marker.addTo(this.map);
+            this.nodeMarkers.push(marker);
+        },
+
+        addLink : function(prmname, ll, type) {
+            var link = this.ds.lookupMap[prmname];
+            if( !link ) return;
+
+            var options = {
+                color: (type == 'origin') ? 'blue' : CWN.colors.red,
+                weight: 3,
+                opacity: 0.4,
+                smoothFactor: 1
+            }
+
+            var marker = L.polyline([
+                [link.geometry.coordinates[1], link.geometry.coordinates[0]],
+                ll
+            ], options).addTo(this.map);
+            this.linkMarkers.push(marker);
+        },
+
+        getMarker : function(ll, type, name) {
+            var options = {
+                iconSize : new L.Point(24, 24),
+                type : type,
+                name : name
+            };
+  
+            return new L.Marker(ll, {
+                icon: new L.Icon.Canvas(options), 
+                opacity: 1
+            });
+        },
+
+        getLineMarker : function(ll) {
+            var options = {
+                iconSize : new L.Point(s, s),
+                renderInfo : feature.properties.renderInfo || {},
+                hide : hide
+            };
+
+            return new L.Marker(ll, {
+                icon: new L.Icon.LineCanvas(options)
+            });
         },
 
         addOrigin : function(e) {
@@ -123,7 +245,14 @@
         onLinksUpdated : function() {
             // origin list
             var list = this.createRemoveList('origins', this.origins);
-            $(this.$.originList).html('').append(list);
+            this.$.originList.innerHTML = '';
+            this.$.originList.appendChild(list);
+
+            list = this.createRemoveList('terminals', this.terminals);
+            this.$.terminalList.innerHTML = '';
+            this.$.terminalList.appendChild(list);
+            
+            this.redrawMarkers();
         },
 
         createRemoveList : function(type, list) {
@@ -135,7 +264,7 @@
 
             var list = $(html+'</ul>');
             list.find('a').on('click', this.removeList.bind(this));
-            return list;
+            return list[0];
         },
 
         removeList : function(e) {
@@ -145,10 +274,24 @@
             var index = this[type].indexOf(prmname);
             if( index > -1 ) this[type].splice(index, 1);
             $(e.currentTarget).parent().remove();
+
+            this.redrawMarkers();
         },
 
         onTypeChange : function() {
+            this.redrawMarkers();
             this.fire('type-change');
+        },
+
+        checkValidPrmname : function() {
+            this.$.prmnameMessage.style.display = 'block';
+            if( !this.ds.lookupMap[this.$.inputPrmname.value] && this.$.inputPrmname.value.length > 0 ) {
+                this.$.prmnameMessage.className = 'alert alert-success';
+                this.$.prmnameMessage.innerText = 'Valid Name';
+            } else {
+                this.$.prmnameMessage.className = 'alert alert-danger';
+                this.$.prmnameMessage.innerText = 'Invalid Name';
+            }
         }
 
     })
