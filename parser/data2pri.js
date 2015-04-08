@@ -62,14 +62,17 @@ function printdir() {
 		var output = '';
 		if( fs.existsSync(bound_path)){
 			var content = fs.readFileSync(bound_path);
-			var mydata = String(content).split(",\n");
+			var mydata = String(content).split("\n");
+
 			var btypecheck = mydata[0].split(",");
-			//console.log(btypecheck);
-			if( btypecheck[1] == "Monthly\n") {
-				var startindex = mydata.indexOf("bound");
+			if( btypecheck[1] == "Monthly") {
+				var startindex = mydata.indexOf("bound,");
 				bound_vals = '';
-				for( var bindex = startindex + 1; bindex < mydata.length - 1; bindex++) {
-					bound_vals = bound_vals + mydata[bindex] + ",";
+				for( var bindex = startindex + 1; bindex < mydata.length; bindex++) {
+					
+					if(/\d+[.]?\d*,/.test(mydata[bindex])) {
+						bound_vals = bound_vals + mydata[bindex];
+					}
 				}
 				
 				if( bound_vals != '') { //or passes a regex check
@@ -290,6 +293,7 @@ function printdir() {
 					}
 					if(geojson["properties"]["costs"]) {
 						PQ = '';
+
 						if(geojson["properties"]["costs"]["type"] == "Monthly Variable") {
 							month_data = geojson["properties"]["costs"]["costs"];
 							for(var costs_i = 0 ; costs_i < month_data.length; costs_i++) {
@@ -297,11 +301,18 @@ function printdir() {
 								PQ =  PQ + P_gen('',"PQ", label, "SOUTH UPDT", origin + "_" + terminus, "Q(K$-KAF)", "", label, "","" );
 							}
 						}
-						if(geojson["properties"]["costs"]["cost"]) {
+						//IF COST IS ZERO, we need a PQ
+						else if(geojson["properties"]["costs"]["cost"] == 0) {
+							PQ =  PQ + P_gen('',"PQ","ALL", "UCD CAP1", "DUMMY", "BLANK", "", "", "" );
+						}
+
+						//getting the cost
+
+						if(geojson["properties"]["costs"]["cost"]){
 							cost = geojson["properties"]["costs"]["cost"];
 						}
 					}
-                                        
+                    
 					outputtext = LINK_gen(outputtext, "DIVR", origin, terminus, amplitude, cost, lower_const, upper_const);
 
 					outputtext = outputtext + "LD        " +  description + "\n";
@@ -309,20 +320,6 @@ function printdir() {
 					outputtext = outputtext + bound_vals;
 
 					outputtext = outputtext + PQ;
-
-					// if( geojson["properties"]["costs"]["type"] == "Monthly Variable") {
-					// 	outputtext = outputtext + "EV        A=" + "UCD CAP1" + " B=" + prmname + " C=" + "EVAP_RATE(FT)" + " F=" + description + "\n";
-					// 	for( var month_i = 0 ; month_i < 12; month_i++) {
-					// 		outputtext = P_gen(outputtext, months[month_i], "UCD CAP1", prmname , "EQUATION", "", "", "SPECIFIC DATE");
-					// 	}
-					// }
-					// else if (geojson["properties"]["costs"]["type"] == "Annual Variable") {
-					//     var mo_label = geojson["properties"]["costs"]["costs"][0]["label"];
-					// 	outputtext = P_gen(outputtext, mo_label , "UCD CAP1", "DUMMY" , "Q(K$-KAF)", "", "", "");
-					// }
-					// else {
-					// 	outputtext = P_gen(outputtext, "ALL", "UCD CAP1", "DUMMY" , "BLANK", "", "", "");
-					// }
 
 					outputtext = QI_gen(outputtext, "FILENAME", origin + "_" + terminus, "FLOW_DIV(KAF)", "", "1MON", "");
 					outputtext = outputtext + "..        \n";
@@ -336,8 +333,8 @@ function printdir() {
 
 	//node_definitions();
 	//inflow_definitions();
-    rsto_definitions();
-    //divr_definitions();
+    //rsto_definitions();
+    divr_definitions();
 }
 
 printdir();
