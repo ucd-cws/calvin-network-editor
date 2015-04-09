@@ -1,43 +1,6 @@
-
 var fs = require('fs');
 
-function expand() {
-    var editorFs = require('../app/js/fs.js').fs;
-    var fs = require('fs');
-
-    if( process.argv.length < 4 ) {
-		console.log('invalid args: [repo dir] [prmname]');
-		return;
-    }
-
-    var prmname = process.argv[3];
-    var dir = process.argv[2];
-
-    var geojson = null;
-    if( fs.existsSync(dir+'/data/nodes/'+prmname+'/node.geojson') ) {
-		geojson = JSON.parse(fs.readFileSync(dir+'/data/nodes/'+prmname+'/node.geojson'));
-		geojson.properties._file = dir+'/data/nodes/'+prmname+'/node.geojson';
-
-    } else if ( fs.existsSync(dir+'/data/links/'+prmname+'/link.geojson') ) {
-		geojson = JSON.parse(fs.readFileSync(dir+'/data/nodes/'+prmname+'/node.geojson'));
-		geojson.properties._file = dir+'/data/links/'+prmname+'/link.geojson';
-
-    }
-
-    if( !geojson ) {
-		console.log('invalid prmname: '+prmname);
-		return;
-    }
-
-    editorFs.loadRefs(geojson, function(){
-		delete geojson.properties._file;
-		console.log(JSON.stringify(geojson, '', '  '));
-		
-    });
-
-}
-
-function printdir() {
+function create_pri_file(filename) {
 
 	var months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
 
@@ -92,8 +55,8 @@ function printdir() {
 		nodes_path = dir+'/data/nodes/';
 		nodes_list = fs.readdirSync(nodes_path);
 
-		outputtext = outputtext + "..        ***** NODE DEFINITIONS *****\n";
-		outputtext = outputtext + "..         \n";
+		outputtext += "..        ***** NODE DEFINITIONS *****\n";
+		outputtext += "..         \n";
 
 
 		for(var i = 0; i < nodes_list.length; i++) {
@@ -118,25 +81,26 @@ function printdir() {
 					areacapfactor = geojson["properties"]["areacapfactor"].toFixed(3);
 				}
 
-				outputtext = outputtext + "NODE     " + geojson["properties"]["prmname"] + " " + initialstorage + " " + areacapfactor + " " + endingstorage + "\n";
-				outputtext = outputtext + "ND       " + geojson["properties"]["description"] + "\n";
-				outputtext = outputtext + "..       \n";
+				outputtext += "NODE     " + geojson["properties"]["prmname"] + " " + initialstorage + " " + areacapfactor + " " + endingstorage + "\n";
+				outputtext += "ND       " + geojson["properties"]["description"] + "\n";
+				outputtext += "..       \n";
 			}
 		}
-        console.log(outputtext);
+//        console.log(outputtext);
+		return outputtext;
 	}
 
 	function inflow_definitions() {
 		var outputtext = '';
 
-		// outputtext = outputtext + "..         \n";
-		// outputtext = outputtext + "..         \n";
-		// outputtext = outputtext + "..         \n";
-		// outputtext = outputtext + "LINK      DIVR      SOURCE    SINK      1.000     0.00\n";
-		// outputtext = outputtext + "LD        Continuity Link\n";
-		// outputtext = outputtext + "..         \n";
-		outputtext = outputtext + "..        ***** INFLOW DEFINITIONS *****\n";
-		outputtext = outputtext + "..         \n";
+		// outputtext += "..         \n";
+		// outputtext += "..         \n";
+		// outputtext += "..         \n";
+		// outputtext += "LINK      DIVR      SOURCE    SINK      1.000     0.00\n";
+		// outputtext += "LD        Continuity Link\n";
+		// outputtext += "..         \n";
+		outputtext += "..        ***** INFLOW DEFINITIONS *****\n";
+		outputtext += "..         \n";
 
 
 		nodes_path = dir+'/data/nodes/';
@@ -150,7 +114,7 @@ function printdir() {
 				var prmname = geojson["properties"]["prmname"];
 				if( geojson["properties"]["inflows"] ) {
 					
-					outputtext = outputtext + "LINK      INFL      SOURCE    " + prmname + "   1.000     0.00\n"
+					outputtext += "LINK      INFL      SOURCE    " + prmname + "   1.000     0.00\n"
 
 					csvfile = nodes_path + nodes_list[i]+ "/" + geojson["properties"]["inflows"][0]["$ref"];
 					var partF = "";
@@ -167,23 +131,23 @@ function printdir() {
 						partF = temp.toUpperCase();
 					}
 
-					outputtext = outputtext + "LD        " + LD + "\n";
-					outputtext = outputtext + "IN        A="+""+" B=SOURCE_"+prmname+ " C="+"FLOW_LOC(KAF)"+" E="+"1MON"+" F=" + partF + "\n";
-					outputtext = outputtext + "..        \n";
+					outputtext += "LD        " + LD + "\n";
+					outputtext += "IN        A="+""+" B=SOURCE_"+prmname+ " C="+"FLOW_LOC(KAF)"+" E="+"1MON"+" F=" + partF + "\n";
+					outputtext += "..        \n";
 
 				}
 			}
-			console.log(outputtext);
-			outputtext = '';
-		}
-	//	console.log(outputtext);
+			//can get each source info if you save outputtext here.
+		}//end for loop
+
+		return outputtext;
 	}
 
 	function rsto_definitions() {
 		var outputtext = '';
 
-		outputtext = outputtext + "..        ***** STORAGE LINK DEFINITIONS *****\n";
-		outputtext = outputtext + "..         \n";
+		outputtext += "..        ***** STORAGE LINK DEFINITIONS *****\n";
+		outputtext += "..         \n";
 
 
 		nodes_path = dir+'/data/nodes/';
@@ -214,45 +178,47 @@ function printdir() {
 							}
 						}
 					}
-					outputtext = LINK_gen(outputtext, "RSTO", prmname, prmname, "1.000","", lower_const, upper_const);
+					outputtext += LINK_gen('', "RSTO", prmname, prmname, "1.000","", lower_const, upper_const);
 
 					var description = geojson["properties"]["description"];
 
-					outputtext = outputtext + "LD        " + type + " " +  description + "\n";
+					outputtext += "LD        " + type + " " +  description + "\n";
 
 					if( geojson["properties"]["costs"]["type"] == "Monthly Variable") {
-						outputtext = outputtext + "EV        A=" + "UCD CAP1" + " B=" + prmname + " C=" + "EVAP_RATE(FT)" + " F=" + description + "\n";
+						//EV evaporation rate always included with PS
+						outputtext += "EV        A=" + "UCD CAP1" + " B=" + prmname + " C=" + "EVAP_RATE(FT)" + " F=" + description + "\n";
 						for( var month_i = 0 ; month_i < 12; month_i++) {
-							outputtext = P_gen(outputtext, "PS", months[month_i], "UCD CAP1", prmname , "EQUATION", "", "", "SPECIFIC DATE");
+							outputtext += P_gen('', "PS", months[month_i], "UCD CAP1", prmname , "EQUATION", "", "", "SPECIFIC DATE");
 						}
 					}
 					else if (geojson["properties"]["costs"]["type"] == "Annual Variable") {
 					    var mo_label = geojson["properties"]["costs"]["costs"][0]["label"];
-						outputtext = P_gen(outputtext,"PS",  mo_label , "UCD CAP1", "DUMMY" , "Q(K$-KAF)", "", "", "");
+						outputtext += P_gen('',"PS",  mo_label , "UCD CAP1", "DUMMY" , "Q(K$-KAF)", "", "", "");
 					}
 					else {
-						outputtext = P_gen(outputtext,"PS", "ALL", "UCD CAP1", "DUMMY" , "BLANK", "", "", "");
+						outputtext += P_gen('',"PS", "ALL", "UCD CAP1", "DUMMY" , "BLANK", "", "", "");
 					}
 
-					outputtext = QI_gen(outputtext, "FILENAME", prmname, "STOR", "", "", "");
-					outputtext = outputtext + "..        \n";
+					outputtext += QI_gen('', filename, prmname, "STOR", "", "", "");
+					outputtext += "..        \n";
 
 				}
 			}
-		}
-		console.log(outputtext);
+		} //end for loop
+		return outputtext;
 	}
 
 	function divr_definitions() {
 		var outputtext = '';
-
 
 		links_path = dir+'/data/links/';
 		links_list = fs.readdirSync(links_path);
 
 		for(var i = 0; i < links_list.length; i++) {
 
+			//set up path for geojson file
 			geojsonfile = links_path + links_list[i] +'/link.geojson';
+
 			if( fs.existsSync(geojsonfile) ) {
 				geojson = JSON.parse(fs.readFileSync(geojsonfile));
 				var prmname = geojson["properties"]["prmname"];
@@ -285,6 +251,7 @@ function printdir() {
 							if(constraints["upper"]["bound"]) {
 								upper_const = constraints["upper"]["bound"];
 							}
+							//csv file for constraints exists, obtain bound values
 							if(constraints["upper"]["$ref"]) {
 								csvfile = links_path + links_list[i]+ "/" + constraints["upper"]["$ref"];
 								bound_vals = get_bound_values("BU", csvfile);
@@ -313,28 +280,50 @@ function printdir() {
 						}
 					}
                     
-					outputtext = LINK_gen(outputtext, "DIVR", origin, terminus, amplitude, cost, lower_const, upper_const);
+					outputtext += LINK_gen('', "DIVR", origin, terminus, amplitude, cost, lower_const, upper_const);
 
-					outputtext = outputtext + "LD        " +  description + "\n";
+					outputtext += "LD        " +  description + "\n";
 
-					outputtext = outputtext + bound_vals;
+					outputtext += bound_vals;
 
-					outputtext = outputtext + PQ;
+					outputtext += PQ;
 
-					outputtext = QI_gen(outputtext, "FILENAME", origin + "_" + terminus, "FLOW_DIV(KAF)", "", "1MON", "");
-					outputtext = outputtext + "..        \n";
+					outputtext += QI_gen('', filename, origin + "_" + terminus, "FLOW_DIV(KAF)", "", "1MON", "");
+					outputtext += "..        \n";
 
 				}
 			}
 		}
-		console.log(outputtext);
+		return outputtext;
 	}
 
+	function individual_out(nodetext, infltext, rstotext, divrtext) {
+		var homepath = process.env['HOME'];
+		
+		write_to_file(homepath , "NODE.out", nodetext);
+		write_to_file(homepath , "INFL.out", infltext);
+		write_to_file(homepath , "RSTO.out", rstotext);
+		write_to_file(homepath , "DIVR.out", divrtext);
+	}
 
-	//node_definitions();
-	//inflow_definitions();
-    //rsto_definitions();
-    divr_definitions();
+	nodetext = node_definitions();
+	infltext = inflow_definitions();
+    rstotext = rsto_definitions();
+    divrtext = divr_definitions();
+
+	individual_out(nodetext, infltext, rstotext, divrtext);
 }
 
-printdir();
+
+function write_to_file(pathname, filename, text) {
+	var fullpath = pathname + "/" + filename;
+	fs.writeFile(fullpath, text, function(err) {
+		if(err) {
+			return console.log(err);
+		}
+		console.log("Wrote " + filename);
+	});
+}
+
+filename = "FILENAME";
+create_pri_file(filename);
