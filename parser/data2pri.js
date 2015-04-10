@@ -1,20 +1,32 @@
 var fs = require('fs');
 
-function create_pri_file(filename) {
+function create_pri_file(datapath, filename) {
+
+	//path to network data
+    var dir = datapath;
 
 	var months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
 
-	function LINK_gen(outstr, name, source, dest, val, cost, lower_const, upper_const) {
-		return outstr + "LINK      " + name + "      " + source + " " + dest + "   " + val + "     " + cost + "     " + lower_const + "    " + upper_const + "\n";
+	function END_gen() {
+		return "..         \n";
+	}
+
+	function LINK_gen(name, source, dest, val, cost, lower_const, upper_const) {
+		return "LINK      " + name + "      " + source + " " + dest + "   " + val + "     " + cost + "     " + lower_const + "    " + upper_const + "\n";
 	} 
 
-	function P_gen(outstr, name, MO, A, B, C, D, E, F) {
-		return outstr + name + "       " + " MO=" + MO + " A=" + A + " B=" + B + " C=" + C + " D=" + D + " E=" + E + " F=" + F + "\n";
+	function P_gen(name, MO, A, B, C, D, E, F) {
+		return name + "       " + " MO=" + MO + " A=" + A + " B=" + B + " C=" + C + " D=" + D + " E=" + E + " F=" + F + "\n";
 	}
-	function QI_gen(outstr, A, B, C, D, E, F) {
-		return outstr + "QI       " + " A=" + A + " B=" + B + " C=" + C + " D=" + D + " E=" + E + " F=" + F + "\n"; 
+
+	function Q_gen(name, A, B, C, D, E, F) {
+		return name + "       " + " A=" + A + " B=" + B + " C=" + C + " D=" + D + " E=" + E + " F=" + F + "\n"; 
 	}
-	function BOUND_gen(outstr, bounds_values) {
+	// QI = Initial Flow
+	function QI_gen(A, B, C, D, E, F) {
+		return "QI       " + " A=" + A + " B=" + B + " C=" + C + " D=" + D + " E=" + E + " F=" + F + "\n"; 
+	}
+	function BOUND_gen(bounds_values) {
 		var output = outstr;
 		if( bounded_values != '') { //will check if contents fit regex if necessary
 			output = output + "BU        " + bounded_values + "\n";
@@ -26,29 +38,28 @@ function create_pri_file(filename) {
 		if( fs.existsSync(bound_path)){
 			var content = fs.readFileSync(bound_path);
 			var mydata = String(content).split("\n");
-
 			var btypecheck = mydata[0].split(",");
+
+			//BL or BU
 			if( btypecheck[1] == "Monthly") {
 				var startindex = mydata.indexOf("bound,");
 				bound_vals = '';
 				for( var bindex = startindex + 1; bindex < mydata.length; bindex++) {
-					
 					if(/\d+[.]?\d*,/.test(mydata[bindex])) {
 						bound_vals = bound_vals + mydata[bindex];
 					}
 				}
-				
-				if( bound_vals != '') { //or passes a regex check
-					output = thebound + "        " + bound_vals + "\n";
-				}
+				//this assumes that the CSV file contains dates
+				output = "B" + thebound + "        " + bound_vals + "\n";
+			}
+			//QL or QU, the constraints for the upper/lower dates
+			else if(btypecheck[1] == "TimeSeries") {
+				output = "Q" + thebound;
 			}
 		}
 		return output;
 	}
 
-
-	//path to network data
-    var dir = process.argv[2];
 	function node_definitions() {
 		var outputtext = '';
 
@@ -56,7 +67,7 @@ function create_pri_file(filename) {
 		nodes_list = fs.readdirSync(nodes_path);
 
 		outputtext += "..        ***** NODE DEFINITIONS *****\n";
-		outputtext += "..         \n";
+		outputtext += END_gen();
 
 
 		for(var i = 0; i < nodes_list.length; i++) {
@@ -100,7 +111,7 @@ function create_pri_file(filename) {
 		// outputtext += "LD        Continuity Link\n";
 		// outputtext += "..         \n";
 		outputtext += "..        ***** INFLOW DEFINITIONS *****\n";
-		outputtext += "..         \n";
+		outputtext += END_gen();
 
 
 		nodes_path = dir+'/data/nodes/';
@@ -133,7 +144,7 @@ function create_pri_file(filename) {
 
 					outputtext += "LD        " + LD + "\n";
 					outputtext += "IN        A="+""+" B=SOURCE_"+prmname+ " C="+"FLOW_LOC(KAF)"+" E="+"1MON"+" F=" + partF + "\n";
-					outputtext += "..        \n";
+					outputtext += END_gen();
 
 				}
 			}
@@ -160,48 +171,81 @@ function create_pri_file(filename) {
 				geojson = JSON.parse(fs.readFileSync(geojsonfile));
 				var prmname = geojson["properties"]["prmname"];
 				var type = geojson["properties"]["type"];
-				if( type == "Surface Storage" || type == "Ground Storage") {
+
+				//Must check for type of storage before continuing
+
+				if( type == "Surface Storage" || type == "Groundwater Storage") {
 					
-					var upper_const = '';
-					var lower_const = '';
+					var description = geojson["properties"]["description"];
 					var constraints = geojson["properties"]["constraints"];
+					var lower_const = '';
+					var upper_const = '';
+					var BL = '';
+					var BU = '';
+					var QL = '';
+					var QU = '';
+					var PS = '';
+					
 					if( constraints ) {
-						if(constraints["lower"]["bound"]) {
-							lower_const = constraints["lower"]["bound"];
-							upper_const = "0.00"; //lower defined means upper must be defined.
-						}
- 
-						if(constraints["upper"]["bound"]) {
-							upper_const = constraints["upper"]["bound"];
-							if(lower_const == '') {
-								lower_const = "0.00"; //upper defined means lower must be defined.
+						if(constraints["lower"]) {
+							if(constraints["lower"]["bound"]) { 
+								lower_const = constraints["lower"]["bound"];
+								upper_const = "0.00"; //lower defined means upper must be defined.
+							}
+							//warning: this does not take into account lists of csv files. 
+							//(applies to all similar contraints checking)
+							if(constraints["lower"]["$ref"]) {
+								csvfile = nodes_path + nodes_list[i]+ "/" + constraints["lower"]["$ref"];
+								BL = get_bound_values("L", csvfile);
 							}
 						}
+						if(constraints["upper"]) {
+							if(constraints["upper"]["bound"]) {
+								upper_const = constraints["upper"]["bound"];
+								if(lower_const == '') {
+									lower_const = "0.00"; //upper defined means lower must be defined.
+								}
+							}
+							//csv file for constraints exists, obtain bound values
+							if(constraints["upper"]["$ref"]) {
+								csvfile = nodes_path + nodes_list[i]+ "/" + constraints["upper"]["$ref"];
+								BU = get_bound_values("U", csvfile);
+							}
+						}      
 					}
-					outputtext += LINK_gen('', "RSTO", prmname, prmname, "1.000","", lower_const, upper_const);
 
-					var description = geojson["properties"]["description"];
+					//Got a Time Series CSV (assumes either BL or QL will be displayed and not both)
+					if(BL == "QL") {
+						BL = '';
+						QL = Q_gen("QL", "UCD CAP1", prmname + "_" + prmname, "STOR(KAF)", "", "1MON", description);
+					}
+					if(BU == "QU") {
+						BU = '';
+						QU = Q_gen("QU", "UCD CAP1", prmname + "_" + prmname, "STOR(KAF)", "", "1MON", description);
+					}
 
-					outputtext += "LD        " + type + " " +  description + "\n";
 
+					var link = LINK_gen("RSTO", prmname, prmname, "1.000","", lower_const, upper_const);
+
+					var LD = "LD        " +  description + "\n";
+
+					//Setting up for EV and/or PS(Storage Penalty Function) if necessary
 					if( geojson["properties"]["costs"]["type"] == "Monthly Variable") {
 						//EV evaporation rate always included with PS
-						outputtext += "EV        A=" + "UCD CAP1" + " B=" + prmname + " C=" + "EVAP_RATE(FT)" + " F=" + description + "\n";
+						PS += "EV        A=" + "UCD CAP1" + " B=" + prmname + " C=" + "EVAP_RATE(FT)" + " F=" + description + "\n";
 						for( var month_i = 0 ; month_i < 12; month_i++) {
-							outputtext += P_gen('', "PS", months[month_i], "UCD CAP1", prmname , "EQUATION", "", "", "SPECIFIC DATE");
+							PS += P_gen("PS", months[month_i], "UCD CAP1", prmname , "", "", "", "");
 						}
 					}
 					else if (geojson["properties"]["costs"]["type"] == "Annual Variable") {
 					    var mo_label = geojson["properties"]["costs"]["costs"][0]["label"];
-						outputtext += P_gen('',"PS",  mo_label , "UCD CAP1", "DUMMY" , "Q(K$-KAF)", "", "", "");
+						PS += P_gen("PS",  mo_label , "UCD CAP1", "DUMMY" , "Q(K$-KAF)", "", "", "");
 					}
 					else {
-						outputtext += P_gen('',"PS", "ALL", "UCD CAP1", "DUMMY" , "BLANK", "", "", "");
+						PS += P_gen("PS", "ALL", "UCD CAP1", "DUMMY" , "BLANK", "", "", "");
 					}
-
-					outputtext += QI_gen('', filename, prmname, "STOR", "", "", "");
-					outputtext += "..        \n";
-
+					var QI = QI_gen(filename, prmname, "STOR", "", "", "");
+					outputtext += link + LD + QL + QU + BL + BU + PS + QI + END_gen();
 				}
 			}
 		} //end for loop
@@ -221,21 +265,22 @@ function create_pri_file(filename) {
 
 			if( fs.existsSync(geojsonfile) ) {
 				geojson = JSON.parse(fs.readFileSync(geojsonfile));
-				var prmname = geojson["properties"]["prmname"];
-				var origin = geojson["properties"]["origin"];
-				var terminus = geojson["properties"]["terminus"];
-				var amplitude = geojson["properties"]["amplitude"];
-				var type = geojson["properties"]["type"];
+				var prmname     = geojson["properties"]["prmname"];
+				var origin      = geojson["properties"]["origin"];
+				var terminus    = geojson["properties"]["terminus"];
+				var amplitude   = geojson["properties"]["amplitude"];
+				var type        = geojson["properties"]["type"];
 				var description = geojson["properties"]["description"];
 
+				//Must check if the link is a diversion before continuing
 				if( type == "Diversion") {
 					
+					var constraints = geojson["properties"]["constraints"];
 					var bound_vals = '';
-					var PQ = '';
 					var upper_const = '';
 					var lower_const = '';
-					var constraints = geojson["properties"]["constraints"];
 					var cost = '';
+					var PQ = '';
 					
 					if( constraints ) {
 						if(constraints["lower"]) {
@@ -259,18 +304,17 @@ function create_pri_file(filename) {
 						}      
 					}
 					if(geojson["properties"]["costs"]) {
-						PQ = '';
-
+						//Monthly Variable Types Require a PQ
 						if(geojson["properties"]["costs"]["type"] == "Monthly Variable") {
 							month_data = geojson["properties"]["costs"]["costs"];
 							for(var costs_i = 0 ; costs_i < month_data.length; costs_i++) {
 								var label = month_data[costs_i]["label"];
-								PQ =  PQ + P_gen('',"PQ", label, "SOUTH UPDT", origin + "_" + terminus, "Q(K$-KAF)", "", label, "","" );
+								PQ += P_gen("PQ", label, "SOUTH UPDT", origin + "_" + terminus, "Q(K$-KAF)", "", label, "","" );
 							}
 						}
 						//IF COST IS ZERO, we need a PQ
 						else if(geojson["properties"]["costs"]["cost"] == 0) {
-							PQ =  PQ + P_gen('',"PQ","ALL", "UCD CAP1", "DUMMY", "BLANK", "", "", "" );
+							PQ += P_gen("PQ","ALL", "UCD CAP1", "DUMMY", "BLANK", "", "", "" );
 						}
 
 						//getting the cost
@@ -280,16 +324,12 @@ function create_pri_file(filename) {
 						}
 					}
                     
-					outputtext += LINK_gen('', "DIVR", origin, terminus, amplitude, cost, lower_const, upper_const);
+					var link = LINK_gen("DIVR", origin, terminus, amplitude, cost, lower_const, upper_const);
+					var LD = "LD        " +  description + "\n";
+					var QI = QI_gen(filename, origin + "_" + terminus, "FLOW_DIV(KAF)", "", "1MON", "");
 
-					outputtext += "LD        " +  description + "\n";
 
-					outputtext += bound_vals;
-
-					outputtext += PQ;
-
-					outputtext += QI_gen('', filename, origin + "_" + terminus, "FLOW_DIV(KAF)", "", "1MON", "");
-					outputtext += "..        \n";
+					outputtext += link + LD + bound_vals + PQ + QI + END_gen();
 
 				}
 			}
@@ -298,7 +338,7 @@ function create_pri_file(filename) {
 	}
 
 	function individual_out(nodetext, infltext, rstotext, divrtext) {
-		var homepath = process.env['HOME'];
+		var homepath = process.env['HOME'] + "/Desktop";
 		
 		write_to_file(homepath , "NODE.out", nodetext);
 		write_to_file(homepath , "INFL.out", infltext);
@@ -326,4 +366,6 @@ function write_to_file(pathname, filename, text) {
 }
 
 filename = "FILENAME";
-create_pri_file(filename);
+if(process.argv.length > 1) {
+	create_pri_file(process.argv[2], filename);
+}
